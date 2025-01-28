@@ -87,7 +87,10 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
         } else {
             // If not blocked, perform AI analysis
             const analysis = await analyzeURL(tab.url, tab.title);
-            if (analysis && analysis.distractionScore > ANALYSIS_THRESHOLD) {
+            const isDistracting = analysis && analysis.distractionScore > ANALYSIS_THRESHOLD;
+            const isProductive = analysis && analysis.productivityScore > ANALYSIS_THRESHOLD;
+            // if is not productive and is distracting
+            if (!isProductive && isDistracting) {
                 browser.tabs.sendMessage(tabId, { 
                     action: "checkPage", 
                     blockedURLs: blockedURLs,
@@ -100,3 +103,13 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
 
 // Listen for tab updates
 browser.tabs.onUpdated.addListener(handleTabUpdate);
+
+// Add a new message handler for popup requests
+browser.runtime.onMessage.addListener(async (message, sender) => {
+    if (message.action === "analyzeCurrentTab") {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        const currentTab = tabs[0];
+        const analysis = await analyzeURL(currentTab.url, currentTab.title);
+        return analysis; // This will be sent back to the popup
+    }
+});

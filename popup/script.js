@@ -2,52 +2,14 @@ let blockedURLs = JSON.parse(localStorage.getItem('blockedURLs')) || [];
 
 const ANALYSIS_THRESHOLD = 0.7; // Sites with distractionScore > 0.7 will be suggested for blocking
 
-async function analyzeURL(url, title) {
-    // Get API key from storage
-    const result = await browser.storage.local.get('openaiApiKey');
-    const apiKey = result.openaiApiKey;
-    
-    if (!apiKey) {
-        throw new Error('Please configure your OpenAI API key in Settings first');
-    }
-
-    const prompt = `Analyze this webpage for its potential to distract a software developer:
-URL: ${url}
-Title: ${title}
-
-Rate on these factors (respond in JSON format only):
-{
-    "productivityScore": (0-1.0, how relevant is this to software development work),
-    "distractionScore": (0-1.0, how likely to cause distraction),
-    "reasoning": "brief explanation of the scoring"
-}`;
-
+async function getAnalysis(currentTab) {
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: "gpt-3.5-turbo",
-                messages: [{
-                    role: "user",
-                    content: prompt
-                }],
-                temperature: 0.7
-            })
+        const analysis = await browser.runtime.sendMessage({
+            action: "analyzeCurrentTab"
         });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`API Error: ${error.error?.message || 'Unknown error'}`);
-        }
-
-        const data = await response.json();
-        return JSON.parse(data.choices[0].message.content);
+        return analysis;
     } catch (error) {
-        console.error('AI Analysis failed:', error);
+        console.error('Failed to get analysis:', error);
         throw error;
     }
 }
@@ -95,7 +57,7 @@ function showError(message) {
 async function performAnalysis(currentTab) {
     try {
         await showLoadingState();
-        const analysis = await analyzeURL(currentTab.url, currentTab.title);
+        const analysis = await getAnalysis(currentTab);
         removeLoadingState();
         
         if (!analysis) {

@@ -4,39 +4,173 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: white;
+    background: linear-gradient(135deg, #f6f8fc 0%, #e9f0f7 100%);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    text-align: center;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    z-index: 999999;
 }
 
-.focuspal-blocked h1 {
-    color: #e53e3e;
+.blocked-content {
+    max-width: 600px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.blocked-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
-.focuspal-blocked .analysis {
-    background: #f7fafc;
+.focus-icon {
+    width: 48px;
+    height: 48px;
+    fill: #4299e1;
+}
+
+.blocked-header h1 {
+    color: #2d3748;
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.motivation-quote {
+    font-style: italic;
+    color: #4a5568;
+    font-size: 1.1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-left: 4px solid #4299e1;
+    background: rgba(66, 153, 225, 0.1);
+    text-align: left;
+}
+
+.analysis-card {
+    background: white;
+    border-radius: 12px;
     padding: 1.5rem;
-    border-radius: 8px;
-    margin: 1rem 0;
-    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 2rem 0;
 }
 
-.focuspal-blocked button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    background: #718096;
+.analysis-card h2 {
+    color: #2d3748;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: white;
-    cursor: pointer;
 }
 
-.focuspal-blocked button:hover {
-    background: #4a5568;
+.score-low {
+    background: #48bb78;
+}
+
+.score-medium {
+    background: #ecc94b;
+}
+
+.score-high {
+    background: #f56565;
+}
+
+.score-item label {
+    color: #4a5568;
+    font-size: 0.9rem;
+}
+
+.analysis-reason {
+    color: #4a5568;
+    line-height: 1.6;
+    margin: 0;
+    text-align: left;
+}
+
+.blocked-message {
+    color: #4a5568;
+    font-size: 1.1rem;
+    margin: 2rem 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.action-buttons button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.action-buttons button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.primary-btn {
+    background: #4299e1;
+    color: white;
+}
+
+.primary-btn:hover {
+    background: #3182ce;
+}
+
+.warning-btn {
+    background: #fc8181;
+    color: white;
+}
+
+.warning-btn:hover {
+    background: #f56565;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.blocked-content {
+    animation: fadeIn 0.5s ease-out;
 } 
