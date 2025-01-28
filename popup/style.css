@@ -1,0 +1,197 @@
+/* AI Analysis Styles */
+.ai-analysis {
+    background: #f5f7fa;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.score-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.score label {
+    min-width: 120px;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background: linear-gradient(90deg, #4299e1, #667eea);
+    transition: width 0.3s ease;
+}
+
+.score span {
+    min-width: 45px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.analysis-reason {
+    font-size: 13px;
+    color: #718096;
+    line-height: 1.4;
+    margin: 8px 0 0 0;
+}
+
+.warning-message {
+    background: #fff5f5;
+    color: #c53030;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 14px;
+    border-left: 4px solid #fc8181;
+}
+
+/* Score Pills in Blocked Sites List */
+.site-analysis {
+    margin-left: 8px;
+}
+
+.score-pill {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.score-pill.high {
+    background: #fff5f5;
+    color: #c53030;
+}
+
+.score-pill.low {
+    background: #f0fff4;
+    color: #2f855a;
+}
+
+/* Adjust existing site-info class */
+.site-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 8px;
+}
+
+/* Loading State */
+.loading-state {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #f7fafc;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #4299e1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-state p {
+    color: #4a5568;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Error State */
+.error-message {
+    background: #fff5f5;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.error-message p {
+    color: #c53030;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+}
+
+.retry-btn {
+    background: #fc8181;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.retry-btn:hover {
+    background: #f56565;
+}
+
+/* Settings styles */
+.settings-section {
+    padding: 16px;
+}
+
+.settings-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.api-key-help {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #718096;
+}
+
+.api-key-help a {
+    color: #4299e1;
+    text-decoration: none;
+}
+
+.api-key-help a:hover {
+    text-decoration: underline;
+} 

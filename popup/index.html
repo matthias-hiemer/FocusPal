@@ -30,6 +30,9 @@
             <button class="tab-btn" data-target="block-list">
                 Block List
             </button>
+            <button class="tab-btn" data-target="settings">
+                Settings
+            </button>
         </div>
         <div id="block-site" class="tab-content" style="display: block;">
             <div class="green-bg"></div>
@@ -44,7 +47,7 @@
                     <button id="block-this-site-btn" class="primary-btn btn">Block this site</button>
                 </div>
                 <div>
-                    <button class="secondary-btn btn" data-target="block-list">Edit block list</button>
+                    <button class="secondary-btn btn" data-target="block-list">edit block list</button>
                 </div>
             </div>
         </div>
@@ -57,6 +60,22 @@
             <section>
                 <p class="blocked-sites-heading">Blocked Sites</p>
                 <ul class="blocked-sites-ul"></ul>
+            </section>
+        </div>
+        <div id="settings" class="tab-content" style="display: none;">
+            <section class="settings-section">
+                <label class="settings-label" for="api-key">OpenAI API Key</label>
+                <input 
+                    class="settings-input" 
+                    type="password" 
+                    id="api-key" 
+                    placeholder="Enter your OpenAI API key"
+                />
+                <button id="save-api-key" class="primary-btn btn">Save API Key</button>
+                <p class="api-key-help">
+                    You need an OpenAI API key for the AI features. 
+                    <a href="https://platform.openai.com/api-keys" target="_blank">Get one here</a>
+                </p>
             </section>
         </div>
     </div>
