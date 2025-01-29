@@ -14,107 +14,250 @@ async function getAnalysis(currentTab) {
     }
 }
 
-async function showLoadingState() {
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'loading-state';
-    loadingDiv.innerHTML = `
-        <div class="loading-spinner"></div>
-        <p>Analyzing page content...</p>
-    `;
-    document.getElementById('block-site').insertBefore(
-        loadingDiv,
-        document.querySelector('#block-site .primary-btn')
-    );
-}
-
-function removeLoadingState() {
-    const loadingState = document.querySelector('.loading-state');
-    if (loadingState) {
-        loadingState.remove();
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // Find or create notification container
+    let container = document.querySelector('.notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'notification-container';
+        // Insert at the very top of the extension
+        const extension = document.querySelector('.extension');
+        extension.insertBefore(container, extension.firstChild);
     }
+    
+    container.appendChild(notification);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
 }
 
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.innerHTML = `
-        <p>${message}</p>
-        <button class="retry-btn">Retry Analysis</button>
-    `;
-    document.getElementById('block-site').insertBefore(
-        errorDiv,
-        document.querySelector('#block-site .primary-btn')
-    );
+function setupWhitelistButton() {
+    document.getElementById('add-to-white-list-btn').addEventListener('click', async function() {
+        const urlInput = document.getElementById('allow-url');
+        const urlTrim = urlInput.value.trim();
+        const faviconUrl = `${urlTrim}/favicon.ico`;
 
-    // Add retry functionality
-    errorDiv.querySelector('.retry-btn').addEventListener('click', async () => {
-        errorDiv.remove();
-        const currentTab = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
-        await performAnalysis(currentTab);
+        if (urlTrim !== '') {
+            const whitelistedURLs = await getWhitelistedURLs();
+            const isAlreadyWhitelisted = whitelistedURLs.some(site => site.url === urlTrim);
+
+            if (isAlreadyWhitelisted) {
+                showNotification('This site is already in the allow list.', 'warning');
+            } else {
+                whitelistedURLs.push({ url: urlTrim, icon: faviconUrl });
+                await saveWhitelistedURLs(whitelistedURLs);
+                await updateWhitelistedSitesDisplay();
+                showNotification('Site added to allow list');
+                urlInput.value = '';
+            }
+        } else {
+            showNotification('Please enter a valid URL.', 'error');
+        }
     });
 }
 
-async function performAnalysis(currentTab) {
-    try {
-        await showLoadingState();
-        const analysis = await getAnalysis(currentTab);
-        removeLoadingState();
-        
-        if (!analysis) {
-            throw new Error('Failed to analyze page');
-        }
+function initPopup() {
+    setupTabNavigation();
+    setupCloseButton();
+    updateBlockedSitesDisplay();
+}
 
-        // Add analysis display to popup
-        const analysisDiv = document.createElement('div');
-        analysisDiv.className = 'ai-analysis';
-        analysisDiv.innerHTML = `
-            <div class="score-container">
-                <div class="score">
-                    <label>Productivity Score:</label>
-                    <div class="progress-bar">
-                        <div class="progress" style="width: ${analysis.productivityScore * 100}%"></div>
-                    </div>
-                    <span>${Math.round(analysis.productivityScore * 100)}%</span>
-                </div>
-                <div class="score">
-                    <label>Distraction Risk:</label>
-                    <div class="progress-bar">
-                        <div class="progress" style="width: ${analysis.distractionScore * 100}%"></div>
-                    </div>
-                    <span>${Math.round(analysis.distractionScore * 100)}%</span>
-                </div>
-            </div>
-            <p class="analysis-reason">${analysis.reasoning}</p>
-        `;
-        
-        document.getElementById('block-site').insertBefore(
-            analysisDiv, 
-            document.querySelector('#block-site .primary-btn')
-        );
+function setupAddToBlockListButton() {
+    document.getElementById('add-to-block-list-btn').addEventListener('click', function() {
+        const urlInput = document.querySelector('.url-input');
+        const urlTrim = urlInput.value.trim();
+        const faviconUrl = `${urlTrim}/favicon.ico`;
 
-        // If site is highly distracting, add warning
-        if (analysis.distractionScore > ANALYSIS_THRESHOLD) {
-            const warningDiv = document.createElement('div');
-            warningDiv.className = 'warning-message';
-            warningDiv.textContent = 'This site has been identified as potentially distracting.';
-            document.getElementById('block-site').insertBefore(
-                warningDiv,
-                document.querySelector('#block-site .primary-btn')
-            );
-        }
-
-        return analysis; // Return the analysis for use in initPopup
-
-    } catch (error) {
-        removeLoadingState();
-        if (error.message.includes('API key')) {
-            showError('Please configure your OpenAI API key in the Settings tab first.');
+        if (urlTrim !== '') {
+            let isAlreadyBlocked = false;
+            blockedURLs.forEach(website => {
+                if (website.url === urlTrim) {
+                    showNotification('This site is already blocked.', 'warning');
+                    isAlreadyBlocked = true;
+                }
+            });
+            if (!isAlreadyBlocked){
+                blockedURLs.push({ url: urlTrim, icon: faviconUrl});
+                saveBlockedURLs(blockedURLs);
+                updateBlockedSitesDisplay();
+                showNotification('Site blocked successfully!');
+                urlInput.value = '';
+            }
         } else {
-            showError(`Analysis failed: ${error.message}`);
+            showNotification('Please enter a valid URL.', 'error');
         }
-        console.error('Analysis error:', error);
-        return null;
+    });
+}
+
+function setupTabNavigation() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(evt) {
+            document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
+            tabs.forEach(t => t.classList.remove('tab-btn-active'));
+            document.getElementById(tab.getAttribute('data-target')).style.display = 'block';
+            tab.classList.add('tab-btn-active');
+        });
+    });
+
+    if (tabs.length > 0) {
+        // Set Settings tab as default
+        document.querySelector('[data-target="settings"]').click();
     }
+}
+
+function setupCloseButton() {
+    document.getElementById('close-btn').addEventListener('click', function() {
+        window.close(); 
+    });
+}
+
+async function setupAPIKeyHandling() {
+    // Load existing API key
+    const result = await browser.storage.local.get('openaiApiKey');
+    if (result.openaiApiKey) {
+        document.getElementById('api-key').value = result.openaiApiKey;
+    }
+
+    // Handle save button
+    document.getElementById('save-api-key').addEventListener('click', async () => {
+        const apiKey = document.getElementById('api-key').value.trim();
+        if (apiKey) {
+            await browser.storage.local.set({ openaiApiKey: apiKey });
+            showNotification('API key saved successfully!');
+        } else {
+            showNotification('Please enter a valid API key', 'error');
+        }
+    });
+}
+
+async function setupTimeRangeHandling() {
+    // Load saved times
+    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo']);
+    if (result.activeTimeFrom) {
+        document.getElementById('time-from').value = result.activeTimeFrom;
+    }
+    if (result.activeTimeTo) {
+        document.getElementById('time-to').value = result.activeTimeTo;
+    }
+
+    // Save times when changed
+    ['time-from', 'time-to'].forEach(id => {
+        document.getElementById(id).addEventListener('change', async function() {
+            const from = document.getElementById('time-from').value;
+            const to = document.getElementById('time-to').value;
+            await browser.storage.local.set({ 
+                activeTimeFrom: from,
+                activeTimeTo: to
+            });
+        });
+    });
+}
+
+function setupBreakTimer() {
+    const breakBtn = document.getElementById('take-break-btn');
+    const breakTimer = document.getElementById('break-timer');
+    let timeLeft = 15 * 60; // 15 minutes in seconds
+    let timerId = null;
+
+    // Check if there's an existing break
+    browser.storage.local.get('breakUntil').then(result => {
+        if (result.breakUntil) {
+            const remainingTime = Math.floor((result.breakUntil - Date.now()) / 1000);
+            if (remainingTime > 0) {
+                startTimer(remainingTime);
+            }
+        }
+    });
+
+    function startTimer(duration) {
+        timeLeft = duration;
+        breakBtn.style.display = 'none';
+        breakTimer.style.display = 'block';
+        
+        if (timerId) clearInterval(timerId);
+        
+        // Start timer
+        timerId = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.querySelector('.timer-count').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                breakBtn.style.display = 'inline-flex';
+                breakTimer.style.display = 'none';
+                timeLeft = 15 * 60;
+                browser.storage.local.remove('breakUntil');
+            }
+        }, 1000);
+    }
+
+    breakBtn.addEventListener('click', async function() {
+        const endTime = Date.now() + (15 * 60 * 1000); // 15 minutes from now
+        await browser.storage.local.set({ breakUntil: endTime });
+        startTimer(15 * 60);
+    });
+}
+
+async function getCurrentTab() {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    return tabs[0];
+}
+
+async function setupQuickActions() {
+    const currentTab = await getCurrentTab();
+    const url = new URL(currentTab.url);
+    const domain = url.hostname;
+    
+    // Setup Block Current Site button
+    document.getElementById('block-current-site').addEventListener('click', async () => {
+        const blockedURLs = await getBlockedURLs();
+        const isAlreadyBlocked = blockedURLs.some(site => site.url === domain);
+        
+        if (isAlreadyBlocked) {
+            showNotification('This site is already blocked.', 'warning');
+            return;
+        }
+        
+        blockedURLs.push({ 
+            url: domain, 
+            icon: `${url.origin}/favicon.ico`
+        });
+        
+        await saveBlockedURLs(blockedURLs);
+        await updateBlockedSitesDisplay();
+        showNotification('Current site blocked successfully!');
+    });
+    
+    // Setup Allow Current Site button
+    document.getElementById('allow-current-site').addEventListener('click', async () => {
+        const whitelistedURLs = await getWhitelistedURLs();
+        const isAlreadyWhitelisted = whitelistedURLs.some(site => site.url === domain);
+        
+        if (isAlreadyWhitelisted) {
+            showNotification('This site is already in the allow list.', 'warning');
+            return;
+        }
+        
+        whitelistedURLs.push({ 
+            url: domain, 
+            icon: `${url.origin}/favicon.ico`
+        });
+        
+        await saveWhitelistedURLs(whitelistedURLs);
+        await updateWhitelistedSitesDisplay();
+        showNotification('Current site added to allow list!');
+    });
 }
 
 async function getBlockedURLs() {
@@ -205,213 +348,11 @@ async function updateWhitelistedSitesDisplay() {
     });
 }
 
-function setupWhitelistButton() {
-    document.getElementById('add-to-white-list-btn').addEventListener('click', async function() {
-        const urlInput = document.getElementById('allow-url');
-        const urlTrim = urlInput.value.trim();
-        const faviconUrl = `${urlTrim}/favicon.ico`;
-
-        if (urlTrim !== '') {
-            const whitelistedURLs = await getWhitelistedURLs();
-            const isAlreadyWhitelisted = whitelistedURLs.some(site => site.url === urlTrim);
-
-            if (isAlreadyWhitelisted) {
-                alert('This site is already in the allow list.');
-            } else {
-                whitelistedURLs.push({ url: urlTrim, icon: faviconUrl });
-                await saveWhitelistedURLs(whitelistedURLs);
-                await updateWhitelistedSitesDisplay();
-                alert('Site added to allow list successfully!');
-                urlInput.value = '';
-            }
-        } else {
-            alert('Please enter a valid URL.');
-        }
-    });
-}
-
-function initPopup() {
-    browser.tabs.query({ active: true, currentWindow: true }).then(async tabs => {
-        const currentTab = tabs[0];
-        document.getElementById('site-name').textContent = currentTab.title || 'Current Site';
-        document.getElementById('iconUrl').src = currentTab.favIconUrl || '';
-
-        // Add AI analysis and store the result
-        const analysis = await performAnalysis(currentTab);
-
-        // Existing block button logic
-        document.querySelector('#block-site .primary-btn').addEventListener('click', function() {
-            if (analysis) {  // Only store if we have analysis
-                blockedURLs.push({ 
-                    url: currentTab.url, 
-                    icon: currentTab.favIconUrl,
-                    analysis: analysis
-                });
-                saveBlockedURLs(blockedURLs);
-                updateBlockedSitesDisplay();
-                alert('Site blocked successfully!');
-            } else {
-                alert('Please wait for site analysis to complete before blocking.');
-            }
-        });
-    });
-
-    setupTabNavigation();
-    setupEditBlockListButton();
-    setupCloseButton();
-
-    updateBlockedSitesDisplay();
-}
-
-function setupAddToBlockListButton() {
-    document.getElementById('add-to-block-list-btn').addEventListener('click', function() {
-        const urlInput = document.querySelector('.url-input');
-        const urlTrim = urlInput.value.trim();
-        const faviconUrl = `${urlTrim}/favicon.ico`;
-
-        if (urlTrim !== '') {
-            let isAlreadyBlocked = false;
-            blockedURLs.forEach(website => {
-                if (website.url === urlTrim) {
-                    alert('This site is already blocked.');
-                    isAlreadyBlocked = true;
-                }
-            });
-            if (!isAlreadyBlocked){
-                blockedURLs.push({ url: urlTrim, icon: faviconUrl});
-                saveBlockedURLs(blockedURLs);
-                updateBlockedSitesDisplay();
-                alert('Site blocked successfully!');
-                urlInput.value = '';
-            }
-        } else {
-            alert('Please enter a valid URL.');
-        }
-    });
-}
-
-function setupTabNavigation() {
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function(evt) {
-            document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
-            tabs.forEach(t => t.classList.remove('tab-btn-active'));
-            document.getElementById(tab.getAttribute('data-target')).style.display = 'block';
-            tab.classList.add('tab-btn-active');
-        });
-    });
-
-    if (tabs.length > 0) {
-        tabs[0].click();
-    }
-}
-
-function setupEditBlockListButton() {
-    document.querySelector('.secondary-btn').addEventListener('click', function() {
-        document.querySelector('[data-target="block-list"]').click(); // Simulate a click on the "Block List" tab
-    });
-}
-
-function setupCloseButton() {
-    document.getElementById('close-btn').addEventListener('click', function() {
-        window.close(); 
-    });
-}
-
-async function setupAPIKeyHandling() {
-    // Load existing API key
-    const result = await browser.storage.local.get('openaiApiKey');
-    if (result.openaiApiKey) {
-        document.getElementById('api-key').value = result.openaiApiKey;
-    }
-
-    // Handle save button
-    document.getElementById('save-api-key').addEventListener('click', async () => {
-        const apiKey = document.getElementById('api-key').value.trim();
-        if (apiKey) {
-            await browser.storage.local.set({ openaiApiKey: apiKey });
-            alert('API key saved successfully!');
-        } else {
-            alert('Please enter a valid API key');
-        }
-    });
-}
-
-async function setupTimeRangeHandling() {
-    // Load saved times
-    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo']);
-    if (result.activeTimeFrom) {
-        document.getElementById('time-from').value = result.activeTimeFrom;
-    }
-    if (result.activeTimeTo) {
-        document.getElementById('time-to').value = result.activeTimeTo;
-    }
-
-    // Save times when changed
-    ['time-from', 'time-to'].forEach(id => {
-        document.getElementById(id).addEventListener('change', async function() {
-            const from = document.getElementById('time-from').value;
-            const to = document.getElementById('time-to').value;
-            await browser.storage.local.set({ 
-                activeTimeFrom: from,
-                activeTimeTo: to
-            });
-        });
-    });
-}
-
-function setupBreakTimer() {
-    const breakBtn = document.getElementById('take-break-btn');
-    const breakTimer = document.getElementById('break-timer');
-    let timeLeft = 15 * 60; // 15 minutes in seconds
-    let timerId = null;
-
-    // Check if there's an existing break
-    browser.storage.local.get('breakUntil').then(result => {
-        if (result.breakUntil) {
-            const remainingTime = Math.floor((result.breakUntil - Date.now()) / 1000);
-            if (remainingTime > 0) {
-                startTimer(remainingTime);
-            }
-        }
-    });
-
-    function startTimer(duration) {
-        timeLeft = duration;
-        breakBtn.style.display = 'none';
-        breakTimer.style.display = 'block';
-        
-        if (timerId) clearInterval(timerId);
-        
-        // Start timer
-        timerId = setInterval(() => {
-            timeLeft--;
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.querySelector('.timer-count').textContent = 
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            
-            if (timeLeft <= 0) {
-                clearInterval(timerId);
-                breakBtn.style.display = 'inline-flex';
-                breakTimer.style.display = 'none';
-                timeLeft = 15 * 60;
-                browser.storage.local.remove('breakUntil');
-            }
-        }, 1000);
-    }
-
-    breakBtn.addEventListener('click', async function() {
-        const endTime = Date.now() + (15 * 60 * 1000); // 15 minutes from now
-        await browser.storage.local.set({ breakUntil: endTime });
-        startTimer(15 * 60);
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     initPopup();
     setupAddToBlockListButton();
     setupWhitelistButton();
+    setupQuickActions();
     setupAPIKeyHandling();
     setupTimeRangeHandling();
     setupBreakTimer();

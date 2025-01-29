@@ -6,7 +6,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
     <script defer src="script.js"></script>
     <title>FocusPal</title>
 </head>
@@ -24,41 +24,30 @@
             </ul>
         </div>
         <div class="tab-nav">
-            <button class="tab-btn tab-btn-active" data-target="block-site">
-                Block Site
-            </button>
             <button class="tab-btn" data-target="block-list">
                 Block List
             </button>
             <button class="tab-btn" data-target="white-list">
                 Allow List
             </button>
-            <button class="tab-btn" data-target="settings">
+            <button class="tab-btn tab-btn-active" data-target="settings">
                 Settings
             </button>
         </div>
-        <div id="block-site" class="tab-content" style="display: block;">
-            <div class="green-bg"></div>
-            <div class="site-div">
-                <div class="icon-div">
-                    <img id="iconUrl" src="" alt="favicon">
-                </div>
-                <h1 id="site-name">Name</h1>
-            </div>
-            <div class="btn-section">
-                <div>
-                    <button id="block-this-site-btn" class="primary-btn btn">Block this site</button>
-                </div>
-                <div>
-                    <button class="secondary-btn btn" data-target="block-list">edit block list</button>
-                </div>
-            </div>
-        </div>
         <div id="block-list" class="tab-content" style="display: none;">
             <section class="block-input-site">
-                <label class="url-label" for="name">Block Site</label>
-                <input class="url-input" type="url" name="url" placeholder="Enter URL" />
-                <button id="add-to-block-list-btn" class="primary-btn btn">Block this site</button>
+                <div class="quick-action">
+                    <button id="block-current-site" class="secondary-btn btn">
+                        <img src="/assets/add.svg" alt="add" class="btn-icon">
+                        Block Current Site
+                    </button>
+                </div>
+                <div class="manual-input">
+                    <p class="input-divider">Or enter manually</p>
+                    <label class="url-label" for="name">Block Site</label>
+                    <input class="url-input" type="url" name="url" placeholder="Enter URL" />
+                    <button id="add-to-block-list-btn" class="primary-btn btn">Block this site</button>
+                </div>
             </section>
             <section>
                 <p class="blocked-sites-heading">Blocked Sites</p>
@@ -67,17 +56,26 @@
         </div>
         <div id="white-list" class="tab-content" style="display: none;">
             <section class="allow-input-site">
-                <label class="url-label" for="allow-url">Always Allow Site</label>
-                <input class="url-input" type="url" name="allow-url" id="allow-url" placeholder="Enter URL" />
-                <button id="add-to-white-list-btn" class="primary-btn btn">Allow this site</button>
+                <div class="quick-action">
+                    <button id="allow-current-site" class="secondary-btn btn">
+                        <img src="/assets/add.svg" alt="add" class="btn-icon">
+                        Allow Current Site
+                    </button>
+                </div>
+                <div class="manual-input">
+                    <p class="input-divider">Or enter manually</p>
+                    <label class="url-label" for="allow-url">Always Allow Site</label>
+                    <input class="url-input" type="url" name="allow-url" id="allow-url" placeholder="Enter URL" />
+                    <button id="add-to-white-list-btn" class="primary-btn btn">Allow this site</button>
+                </div>
             </section>
-            <section>
+            <section class="allowed-sites-section">
                 <p class="allowed-sites-heading">Allowed Sites</p>
                 <p class="allowed-sites-description">These sites will never be blocked, even during focus hours.</p>
                 <ul class="allowed-sites-ul"></ul>
             </section>
         </div>
-        <div id="settings" class="tab-content" style="display: none;">
+        <div id="settings" class="tab-content" style="display: block;">
             <section class="settings-section">
                 <h2 class="settings-title">AI Protection Settings</h2>
                 
