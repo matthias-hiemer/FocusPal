@@ -64,18 +64,53 @@
         </div>
         <div id="settings" class="tab-content" style="display: none;">
             <section class="settings-section">
-                <label class="settings-label" for="api-key">OpenAI API Key</label>
-                <input 
-                    class="settings-input" 
-                    type="password" 
-                    id="api-key" 
-                    placeholder="Enter your OpenAI API key"
-                />
-                <button id="save-api-key" class="primary-btn btn">Save API Key</button>
-                <p class="api-key-help">
-                    You need an OpenAI API key for the AI features. 
-                    <a href="https://platform.openai.com/api-keys" target="_blank">Get one here</a>
-                </p>
+                <h2 class="settings-title">AI Protection Settings</h2>
+                
+                <div class="time-range-section">
+                    <label class="settings-label">Active Hours</label>
+                    <div class="time-inputs">
+                        <div class="time-input-group">
+                            <label>From</label>
+                            <input type="time" id="time-from" class="settings-input time-input" value="06:00">
+                        </div>
+                        <div class="time-input-group">
+                            <label>To</label>
+                            <input type="time" id="time-to" class="settings-input time-input" value="17:00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="break-section">
+                    <h3>Need a Break?</h3>
+                    <p class="break-description">Take a short break from focus mode</p>
+                    <button id="take-break-btn" class="secondary-btn">
+                        <svg class="break-icon" viewBox="0 0 24 24">
+                            <path d="M12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6m0-2C7.03 4 3 8.03 3 13s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z"/>
+                            <path d="M12 8l-4 4h3v4h2v-4h3l-4-4z"/>
+                        </svg>
+                        Take a 15min Break
+                    </button>
+                    <div id="break-timer" class="break-timer" style="display: none">
+                        <span class="timer-text">Break ends in: </span>
+                        <span class="timer-count">15:00</span>
+                    </div>
+                </div>
+
+                <div class="api-section">
+                    <h3>OpenAI API Configuration</h3>
+                    <label class="settings-label" for="api-key">OpenAI API Key</label>
+                    <input 
+                        class="settings-input" 
+                        type="password" 
+                        id="api-key" 
+                        placeholder="Enter your OpenAI API key"
+                    />
+                    <button id="save-api-key" class="primary-btn btn">Save API Key</button>
+                    <p class="api-key-help">
+                        You need an OpenAI API key for the AI features. 
+                        <a href="https://platform.openai.com/api-keys" target="_blank">Get one here</a>
+                    </p>
+                </div>
             </section>
         </div>
     </div>

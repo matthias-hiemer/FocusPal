@@ -272,8 +272,81 @@ async function setupAPIKeyHandling() {
     });
 }
 
+async function setupTimeRangeHandling() {
+    // Load saved times
+    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo']);
+    if (result.activeTimeFrom) {
+        document.getElementById('time-from').value = result.activeTimeFrom;
+    }
+    if (result.activeTimeTo) {
+        document.getElementById('time-to').value = result.activeTimeTo;
+    }
+
+    // Save times when changed
+    ['time-from', 'time-to'].forEach(id => {
+        document.getElementById(id).addEventListener('change', async function() {
+            const from = document.getElementById('time-from').value;
+            const to = document.getElementById('time-to').value;
+            await browser.storage.local.set({ 
+                activeTimeFrom: from,
+                activeTimeTo: to
+            });
+        });
+    });
+}
+
+function setupBreakTimer() {
+    const breakBtn = document.getElementById('take-break-btn');
+    const breakTimer = document.getElementById('break-timer');
+    let timeLeft = 15 * 60; // 15 minutes in seconds
+    let timerId = null;
+
+    // Check if there's an existing break
+    browser.storage.local.get('breakUntil').then(result => {
+        if (result.breakUntil) {
+            const remainingTime = Math.floor((result.breakUntil - Date.now()) / 1000);
+            if (remainingTime > 0) {
+                startTimer(remainingTime);
+            }
+        }
+    });
+
+    function startTimer(duration) {
+        timeLeft = duration;
+        breakBtn.style.display = 'none';
+        breakTimer.style.display = 'block';
+        
+        if (timerId) clearInterval(timerId);
+        
+        // Start timer
+        timerId = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.querySelector('.timer-count').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                breakBtn.style.display = 'inline-flex';
+                breakTimer.style.display = 'none';
+                timeLeft = 15 * 60;
+                browser.storage.local.remove('breakUntil');
+            }
+        }, 1000);
+    }
+
+    breakBtn.addEventListener('click', async function() {
+        const endTime = Date.now() + (15 * 60 * 1000); // 15 minutes from now
+        await browser.storage.local.set({ breakUntil: endTime });
+        startTimer(15 * 60);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initPopup();
     setupAddToBlockListButton();
     setupAPIKeyHandling();
+    setupTimeRangeHandling();
+    setupBreakTimer();
 });

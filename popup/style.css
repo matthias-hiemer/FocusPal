@@ -156,7 +156,127 @@
 
 /* Settings styles */
 .settings-section {
-    padding: 16px;
+    padding: 20px;
+    background: #f7fafc;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.settings-title {
+    color: #2d3748;
+    font-size: 1.5rem;
+    margin: 0 0 1.5rem 0;
+    font-weight: 600;
+}
+
+.time-range-section, .break-section, .api-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.time-inputs {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.75rem;
+}
+
+.time-input-group {
+    flex: 1;
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.time-input-group label {
+    display: block;
+    font-size: 0.875rem;
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.time-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: white;
+}
+
+.break-section {
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.break-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4299e1, #667eea);
+    border-radius: 4px 4px 0 0;
+}
+
+.break-section h3 {
+    color: #2d3748;
+    margin: 1rem 0 0.5rem 0;
+    font-size: 1.25rem;
+}
+
+.break-description {
+    color: #718096;
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+}
+
+#take-break-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #4299e1, #667eea);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+}
+
+#take-break-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(66, 153, 225, 0.3);
+}
+
+.break-timer {
+    margin-top: 1.25rem;
+    font-size: 1.5rem;
+    color: #2d3748;
+    padding: 1rem;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+}
+
+.timer-count {
+    font-weight: 700;
+    color: #4299e1;
+    margin-left: 0.5rem;
+}
+
+.api-section h3 {
+    color: #2d3748;
+    margin: 0 0 1rem 0;
 }
 
 .settings-label {

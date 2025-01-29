@@ -1,6 +1,7 @@
 console.log("background script loaded");
 
-const ANALYSIS_THRESHOLD = 0.7;
+const PRODUCTIVITY_THRESHOLD = 0.5;
+const DISTRACTION_THRESHOLD = 0.7;
 
 async function getBlockedURLs() {
     try {
@@ -66,9 +67,43 @@ Rate on these factors (respond in JSON format only):
     }
 }
 
+async function isWithinActiveHours() {
+    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo', 'breakUntil']);
+    
+    // Check if we're on a break
+    if (result.breakUntil) {
+        const breakEndTime = parseInt(result.breakUntil);
+        if (Date.now() < breakEndTime) {
+            console.log('Currently on break until:', new Date(breakEndTime));
+            return false;
+        }
+    }
+
+    // Default times if not set
+    const from = result.activeTimeFrom || '06:00';
+    const to = result.activeTimeTo || '17:00';
+    
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    
+    const [fromHours, fromMinutes] = from.split(':').map(Number);
+    const [toHours, toMinutes] = to.split(':').map(Number);
+    
+    const fromTime = fromHours * 60 + fromMinutes;
+    const toTime = toHours * 60 + toMinutes;
+    
+    const isActive = currentTime >= fromTime && currentTime <= toTime;
+    console.log('Time check:', { current: currentTime, from: fromTime, to: toTime, isActive });
+    return isActive;
+}
+
 async function handleTabUpdate(tabId, changeInfo, tab) {
-    // Only analyze when the page has finished loading
     if (changeInfo.status === "complete") {
+        // Check if we're within active hours
+        if (!await isWithinActiveHours()) {
+            return;
+        }
+        
         console.log("Analyzing page:", tab.url);
         
         // Get blocked URLs first
@@ -87,8 +122,8 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
         } else {
             // If not blocked, perform AI analysis
             const analysis = await analyzeURL(tab.url, tab.title);
-            const isDistracting = analysis && analysis.distractionScore > ANALYSIS_THRESHOLD;
-            const isProductive = analysis && analysis.productivityScore > ANALYSIS_THRESHOLD;
+            const isDistracting = analysis && analysis.distractionScore > DISTRACTION_THRESHOLD;
+            const isProductive = analysis && analysis.productivityScore > PRODUCTIVITY_THRESHOLD;
             // if is not productive and is distracting
             if (!isProductive && isDistracting) {
                 browser.tabs.sendMessage(tabId, { 
