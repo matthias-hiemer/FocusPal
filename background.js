@@ -13,6 +13,11 @@ async function getBlockedURLs() {
     }
 }
 
+async function getWhitelistedURLs() {
+    const result = await browser.storage.local.get('whitelistedURLs');
+    return result.whitelistedURLs || [];
+}
+
 async function getApiKey() {
     const result = await browser.storage.local.get('openaiApiKey');
     return result.openaiApiKey;
@@ -108,6 +113,14 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
         
         // Get blocked URLs first
         const blockedURLs = await getBlockedURLs();
+        const whitelistedURLs = await getWhitelistedURLs();
+        
+        // Check if URL is whitelisted first
+        const isWhitelisted = whitelistedURLs.some(allowed => tab.url.includes(allowed.url));
+        if (isWhitelisted) {
+            console.log('URL is whitelisted:', tab.url);
+            return;
+        }
         
         // Check if URL is in blocklist first
         const isBlocked = blockedURLs.some(blocked => tab.url.includes(blocked.url));

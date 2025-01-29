@@ -30,6 +30,9 @@
             <button class="tab-btn" data-target="block-list">
                 Block List
             </button>
+            <button class="tab-btn" data-target="white-list">
+                Allow List
+            </button>
             <button class="tab-btn" data-target="settings">
                 Settings
             </button>
@@ -60,6 +63,18 @@
             <section>
                 <p class="blocked-sites-heading">Blocked Sites</p>
                 <ul class="blocked-sites-ul"></ul>
+            </section>
+        </div>
+        <div id="white-list" class="tab-content" style="display: none;">
+            <section class="allow-input-site">
+                <label class="url-label" for="allow-url">Always Allow Site</label>
+                <input class="url-input" type="url" name="allow-url" id="allow-url" placeholder="Enter URL" />
+                <button id="add-to-white-list-btn" class="primary-btn btn">Allow this site</button>
+            </section>
+            <section>
+                <p class="allowed-sites-heading">Allowed Sites</p>
+                <p class="allowed-sites-description">These sites will never be blocked, even during focus hours.</p>
+                <ul class="allowed-sites-ul"></ul>
             </section>
         </div>
         <div id="settings" class="tab-content" style="display: none;">

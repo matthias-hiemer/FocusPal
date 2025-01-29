@@ -165,6 +165,71 @@ async function updateBlockedSitesDisplay() {
     });
 }
 
+async function getWhitelistedURLs() {
+    const result = await browser.storage.local.get('whitelistedURLs');
+    return result.whitelistedURLs || [];
+}
+
+async function saveWhitelistedURLs(urls) {
+    await browser.storage.local.set({ whitelistedURLs: urls });
+}
+
+async function updateWhitelistedSitesDisplay() {
+    const whitelistedURLs = await getWhitelistedURLs();
+    const whitelistedSitesList = document.querySelector('.allowed-sites-ul');
+    whitelistedSitesList.innerHTML = '';
+
+    whitelistedURLs.forEach((site, index) => {
+        const li = document.createElement('li');
+        li.className = 'blocked-sites-li'; // Reuse the same styling
+
+        li.innerHTML = `
+            <div class="site-info">
+                <img class="favicon" src="${site.icon}" alt="">
+                <p class="site-url">${site.url}</p>
+            </div>
+            <img src="/assets/delete.svg" alt="delete" class="delete-btn" data-index="${index}">
+        `;
+        whitelistedSitesList.appendChild(li);
+    });
+
+    // Add delete functionality
+    document.querySelectorAll('.allowed-sites-ul .delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const index = this.getAttribute('data-index');
+            const urls = await getWhitelistedURLs();
+            urls.splice(index, 1);
+            await saveWhitelistedURLs(urls);
+            updateWhitelistedSitesDisplay();
+        });
+    });
+}
+
+function setupWhitelistButton() {
+    document.getElementById('add-to-white-list-btn').addEventListener('click', async function() {
+        const urlInput = document.getElementById('allow-url');
+        const urlTrim = urlInput.value.trim();
+        const faviconUrl = `${urlTrim}/favicon.ico`;
+
+        if (urlTrim !== '') {
+            const whitelistedURLs = await getWhitelistedURLs();
+            const isAlreadyWhitelisted = whitelistedURLs.some(site => site.url === urlTrim);
+
+            if (isAlreadyWhitelisted) {
+                alert('This site is already in the allow list.');
+            } else {
+                whitelistedURLs.push({ url: urlTrim, icon: faviconUrl });
+                await saveWhitelistedURLs(whitelistedURLs);
+                await updateWhitelistedSitesDisplay();
+                alert('Site added to allow list successfully!');
+                urlInput.value = '';
+            }
+        } else {
+            alert('Please enter a valid URL.');
+        }
+    });
+}
+
 function initPopup() {
     browser.tabs.query({ active: true, currentWindow: true }).then(async tabs => {
         const currentTab = tabs[0];
@@ -346,7 +411,9 @@ function setupBreakTimer() {
 document.addEventListener('DOMContentLoaded', () => {
     initPopup();
     setupAddToBlockListButton();
+    setupWhitelistButton();
     setupAPIKeyHandling();
     setupTimeRangeHandling();
     setupBreakTimer();
+    updateWhitelistedSitesDisplay();
 });

@@ -91,6 +91,25 @@
     align-items: center;
     flex: 1;
     gap: 8px;
+    position: relative;
+}
+
+.site-info::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+}
+
+.blocked-sites-ul .site-info::before {
+    background: #fc8181;  /* Red indicator */
+}
+
+.allowed-sites-ul .site-info::before {
+    background: #68d391;  /* Green indicator */
 }
 
 /* Loading State */
@@ -314,4 +333,37 @@
 
 .api-key-help a:hover {
     text-decoration: underline;
+}
+
+/* Whitelist styles */
+.allowed-sites-heading {
+    color: #2d3748;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.5rem 1rem;
+}
+
+.allowed-sites-description {
+    color: #718096;
+    font-size: 0.875rem;
+    margin: 0 0 1rem 1rem;
+}
+
+.allowed-sites-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.allowed-sites-ul .site-info {
+    background: #f0fff4;  /* Light green background */
+}
+
+.allowed-sites-ul .site-info .site-url {
+    color: #2f855a;  /* Green text */
+}
+
+.allow-input-site {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
 } 
