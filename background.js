@@ -78,18 +78,52 @@ function renderPrompt(template, url, title) {
         .replaceAll('{{title}}', title || '');
 }
 
+async function getProvider() {
+    const { aiProvider } = await browser.storage.local.get('aiProvider');
+    return aiProvider || 'openai';
+}
+
+async function callOpenAI(prompt) {
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+        throw new Error('No OpenAI API key configured');
+    }
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.2,
+            response_format: { type: "json_object" }
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(`OpenAI error: ${error.error?.message || response.status}`);
+    }
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+}
+
+async function callProvider(prompt) {
+    const provider = await getProvider();
+    if (provider === 'openai') return callOpenAI(prompt);
+    throw new Error(`Unknown provider: ${provider}`);
+}
+
 async function analyzeURL(url, title) {
     const hostname = getHostname(url);
     const cached = await getCachedAnalysis(hostname);
     if (cached) {
         console.log('Using cached analysis for', hostname);
         return cached;
-    }
-
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-        console.error('No API key configured');
-        return null;
     }
 
     if (!rateLimitAllows()) {
@@ -101,35 +135,11 @@ async function analyzeURL(url, title) {
     const prompt = renderPrompt(template, url, title);
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [{
-                    role: "user",
-                    content: prompt
-                }],
-                temperature: 0.2,
-                response_format: { type: "json_object" }
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('API Error:', error);
-            return null;
-        }
-
-        const data = await response.json();
-        const analysis = JSON.parse(data.choices[0].message.content);
+        const analysis = await callProvider(prompt);
         await setCachedAnalysis(hostname, analysis);
         return analysis;
     } catch (error) {
-        console.error('AI Analysis failed:', error);
+        console.error('AI Analysis failed:', error.message || error);
         return null;
     }
 }
