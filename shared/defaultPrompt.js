@@ -27,3 +27,29 @@ Reference scoring:
 - Social / Entertainment home feeds (Reddit, YouTube, TikTok, Instagram, X): productivity 0.0-0.1, distraction 0.9-1.0
 - Blank / loading pages: productivity 0.5, distraction 0.0
 `;
+
+// Negotiation prompt: the user is blocked from a site and is asking for a
+// timed unblock with a stated reason. The model decides how generous to be.
+var DEFAULT_NEGOTIATION_PROMPT_TEMPLATE = `The user is currently blocked from a distracting website and is requesting a temporary unblock.
+
+URL: {{url}}
+Title: {{title}}
+User's stated reason: "{{reason}}"
+
+Your job: grant the user between 1 and 10 minutes of access, based on how plausible and specific the reason is. You are friendly but skeptical — the user already chose to block this site, so they explicitly want resistance to mindless visits.
+
+Guidance:
+- Vague or generic reasons ("kurz schauen", "just a quick look", "I'm bored", empty/very short reasons) → 1 minute. Strong cooldown beats outright denial; the user feels heard but barely rewarded.
+- Plausible but unspecific work reasons ("checking something", "for research") → 2-3 minutes.
+- Specific, scoped tasks ("looking up the docs for X", "replying to a message from Y", "watching one tutorial on Z") → 4-7 minutes.
+- Clear, time-bounded work needs with explicit scope → up to 10 minutes.
+- If the reason is clearly a rationalization for distraction (e.g. "I deserve a break", "just five minutes"), grant 1 minute anyway and call it out in the message.
+
+Respond in strict JSON format only:
+{
+    "minutes": (integer, 1-10),
+    "verdict": "approved" | "skeptical" | "indulgent",
+    "message": "one short, direct sentence to the user in second person — friendly, honest, no fluff"
+}
+`;
+
