@@ -112,9 +112,43 @@ async function callOpenAI(prompt) {
     return JSON.parse(data.choices[0].message.content);
 }
 
+async function callOllama(prompt) {
+    const { ollamaBaseUrl, ollamaModel } = await browser.storage.local.get([
+        'ollamaBaseUrl',
+        'ollamaModel'
+    ]);
+    const baseUrl = (ollamaBaseUrl || 'http://localhost:11434').replace(/\/+$/, '');
+    const model = ollamaModel || 'llama3.2';
+
+    const response = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            format: 'json',
+            stream: false,
+            options: { temperature: 0.2 }
+        })
+    });
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(`Ollama error ${response.status}: ${text.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const content = data.message?.content;
+    if (!content) {
+        throw new Error('Ollama returned no message content');
+    }
+    return JSON.parse(content);
+}
+
 async function callProvider(prompt) {
     const provider = await getProvider();
     if (provider === 'openai') return callOpenAI(prompt);
+    if (provider === 'ollama') return callOllama(prompt);
     throw new Error(`Unknown provider: ${provider}`);
 }
 
