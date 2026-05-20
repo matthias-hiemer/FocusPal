@@ -151,6 +151,15 @@
     background: #3182ce;
 }
 
+.secondary-btn {
+    background: #e2e8f0;
+    color: #2d3748;
+}
+
+.secondary-btn:hover {
+    background: #cbd5e0;
+}
+
 .warning-btn {
     background: #fc8181;
     color: white;
@@ -158,6 +167,158 @@
 
 .warning-btn:hover {
     background: #f56565;
+}
+
+.warning-btn:disabled {
+    background: #cbd5e0;
+    color: #4a5568;
+    cursor: not-allowed;
+}
+
+/* Negotiation view */
+.negotiation-title,
+.math-title {
+    color: #2d3748;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.negotiation-help,
+.math-help {
+    color: #4a5568;
+    margin-bottom: 1.5rem;
+}
+
+.negotiation-input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.negotiation-result {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    text-align: left;
+}
+
+.negotiation-result.error {
+    background: #fff5f5;
+    color: #c53030;
+}
+
+.verdict-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.verdict-line strong {
+    font-size: 1.5rem;
+    color: #2d3748;
+}
+
+.verdict-tag {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #edf2f7;
+    color: #4a5568;
+}
+
+.verdict-approved .verdict-tag { background: #c6f6d5; color: #22543d; }
+.verdict-skeptical .verdict-tag { background: #feebc8; color: #7b341e; }
+.verdict-indulgent .verdict-tag { background: #fed7d7; color: #822727; }
+
+.verdict-message {
+    color: #4a5568;
+    margin: 0;
+}
+
+/* Math view */
+.math-problem {
+    font-size: 2.25rem;
+    color: #2d3748;
+    margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.math-problem input {
+    width: 120px;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 1.75rem;
+    text-align: center;
+    font-family: inherit;
+}
+
+.math-feedback {
+    margin-top: 1rem;
+    min-height: 1.25rem;
+    color: #4a5568;
+}
+
+.math-feedback.ok {
+    color: #22543d;
+}
+
+/* Active-unblock overlay */
+.focuspal-overlay {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 2147483647;
+    background: rgba(45, 55, 72, 0.92);
+    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+.focuspal-overlay-label {
+    font-weight: 600;
+    opacity: 0.7;
+    letter-spacing: 0.05em;
+}
+
+.focuspal-overlay-time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.focuspal-overlay-end {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+    opacity: 0.7;
+}
+
+.focuspal-overlay-end:hover {
+    opacity: 1;
 }
 
 @keyframes fadeIn {
