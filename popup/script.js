@@ -194,6 +194,48 @@ async function setupTimeRangeHandling() {
     });
 }
 
+async function setupProviderHandling() {
+    const { aiProvider, ollamaBaseUrl, ollamaModel } = await browser.storage.local.get([
+        'aiProvider', 'ollamaBaseUrl', 'ollamaModel'
+    ]);
+    const current = aiProvider || 'openai';
+
+    const radios = document.querySelectorAll('input[name="ai-provider"]');
+    const ollamaBlock = document.getElementById('ollama-config');
+    const apiBlock = document.getElementById('api-section');
+
+    function applyVisibility(provider) {
+        ollamaBlock.style.display = provider === 'ollama' ? 'block' : 'none';
+        apiBlock.style.display = provider === 'openai' ? 'block' : 'none';
+    }
+
+    radios.forEach(r => {
+        r.checked = r.value === current;
+        r.addEventListener('change', async () => {
+            if (!r.checked) return;
+            await browser.storage.local.set({ aiProvider: r.value });
+            await browser.storage.local.remove('analysisCache');
+            applyVisibility(r.value);
+            showNotification(`Provider switched to ${r.value}`);
+        });
+    });
+    applyVisibility(current);
+
+    document.getElementById('ollama-base-url').value = ollamaBaseUrl || '';
+    document.getElementById('ollama-model').value = ollamaModel || '';
+
+    document.getElementById('save-ollama').addEventListener('click', async () => {
+        const baseUrl = document.getElementById('ollama-base-url').value.trim();
+        const model = document.getElementById('ollama-model').value.trim();
+        await browser.storage.local.set({
+            ollamaBaseUrl: baseUrl || 'http://localhost:11434',
+            ollamaModel: model || 'llama3.2'
+        });
+        await browser.storage.local.remove('analysisCache');
+        showNotification('Ollama settings saved');
+    });
+}
+
 async function setupPromptHandling() {
     const textarea = document.getElementById('analysis-prompt');
     const result = await browser.storage.local.get('analysisPromptTemplate');
@@ -409,6 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAddToBlockListButton();
     setupWhitelistButton();
     setupQuickActions();
+    setupProviderHandling();
     setupAPIKeyHandling();
     setupPromptHandling();
     setupTimeRangeHandling();

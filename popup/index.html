@@ -129,7 +129,44 @@
                     </div>
                 </div>
 
-                <div class="api-section">
+                <div class="provider-section">
+                    <h3>AI Provider</h3>
+                    <div class="provider-choice">
+                        <label class="radio-row">
+                            <input type="radio" name="ai-provider" value="openai" />
+                            <span>OpenAI (cloud)</span>
+                        </label>
+                        <label class="radio-row">
+                            <input type="radio" name="ai-provider" value="ollama" />
+                            <span>Ollama (local)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="ollama-config" class="ollama-section" style="display: none;">
+                    <h3>Ollama Configuration</h3>
+                    <label class="settings-label" for="ollama-base-url">Base URL</label>
+                    <input
+                        class="settings-input"
+                        type="text"
+                        id="ollama-base-url"
+                        placeholder="http://localhost:11434"
+                    />
+                    <label class="settings-label" for="ollama-model">Model</label>
+                    <input
+                        class="settings-input"
+                        type="text"
+                        id="ollama-model"
+                        placeholder="llama3.2"
+                    />
+                    <button id="save-ollama" class="primary-btn btn">Save Ollama Settings</button>
+                    <p class="api-key-help">
+                        If requests fail with a CORS / 403 error, restart Ollama with
+                        <code>OLLAMA_ORIGINS="moz-extension://*"</code> in the environment.
+                    </p>
+                </div>
+
+                <div id="api-section" class="api-section">
                     <h3>OpenAI API Configuration</h3>
                     <label class="settings-label" for="api-key">OpenAI API Key</label>
                     <div id="api-key-stored" class="api-key-stored" style="display: none;">
