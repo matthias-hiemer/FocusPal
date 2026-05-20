@@ -67,6 +67,17 @@ async function getApiKey() {
     return result.openaiApiKey;
 }
 
+async function getPromptTemplate() {
+    const result = await browser.storage.local.get('analysisPromptTemplate');
+    return result.analysisPromptTemplate || DEFAULT_ANALYSIS_PROMPT_TEMPLATE;
+}
+
+function renderPrompt(template, url, title) {
+    return template
+        .replaceAll('{{url}}', url || '')
+        .replaceAll('{{title}}', title || '');
+}
+
 async function analyzeURL(url, title) {
     const hostname = getHostname(url);
     const cached = await getCachedAnalysis(hostname);
@@ -86,26 +97,8 @@ async function analyzeURL(url, title) {
         return null;
     }
 
-    const prompt = `Analyze this webpage for productivity impact for a software developer:
-    URL: ${url}
-    Title: ${title}
-
-    Respond in strict JSON format only:
-    {
-        "productivityScore": (0-1.0, higher for developer tools, documentation, learning resources, relevant to: Java, cloud, AI, education, real estate),
-        "distractionScore": (0-1.0, how likely to cause distraction). Hint: a blank new tab may happen because browser may not have loaded the page yet, so this is not a distraction,
-        "reasoning": "brief explanation of the scoring"
-    }
-
-    Reference scoring:
-    Developer tools (GitHub, Stack Overflow): productivity 0.9-1.0, distraction 0.0-0.1
-    Search engines (Google, Bing): productivity 0.6, distraction 0.5
-    Work communication (Email, Slack): productivity 0.8-0.9, distraction 0.1-0.2
-    Social/Entertainment (Reddit, YouTube, TikTok): productivity 0.0-0.1, distraction 0.9-1.0
-    Blank/loading pages: productivity 0.5, distraction 0.0
-    AI tools (ChatGPT, Claude, Gemini): productivity 0.8-1.0, distraction 0.0-0.15
-
-`;
+    const template = await getPromptTemplate();
+    const prompt = renderPrompt(template, url, title);
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
