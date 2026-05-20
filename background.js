@@ -47,6 +47,24 @@ async function setCachedAnalysis(hostname, analysis) {
     await browser.storage.local.set({ analysisCache });
 }
 
+async function getTemporaryUnblock(hostname) {
+    if (!hostname) return null;
+    const { temporaryUnblocks = {} } = await browser.storage.local.get('temporaryUnblocks');
+    const entry = temporaryUnblocks[hostname];
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) return null;
+    return entry;
+}
+
+async function setTemporaryUnblock(hostname, minutes, source) {
+    if (!hostname) return null;
+    const { temporaryUnblocks = {} } = await browser.storage.local.get('temporaryUnblocks');
+    const expiresAt = Date.now() + minutes * 60 * 1000;
+    temporaryUnblocks[hostname] = { expiresAt, source, minutes };
+    await browser.storage.local.set({ temporaryUnblocks });
+    return expiresAt;
+}
+
 async function getBlockedURLs() {
     try {
         const result = await browser.storage.local.get('blockedURLs');
@@ -227,6 +245,14 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
             console.log('URL is whitelisted:', tab.url);
             return;
         }
+
+        // Honor any active temporary unblock for this hostname
+        const hostname = getHostname(tab.url);
+        const unblock = await getTemporaryUnblock(hostname);
+        if (unblock) {
+            console.log('Temporary unblock active for', hostname, 'until', new Date(unblock.expiresAt));
+            return;
+        }
         
         // Check if URL is in blocklist first
         const isBlocked = blockedURLs.some(blocked => tab.url.includes(blocked.url));
@@ -258,12 +284,65 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
 // Listen for tab updates
 browser.tabs.onUpdated.addListener(handleTabUpdate);
 
-// Add a new message handler for popup requests
+async function getNegotiationTemplate() {
+    const { negotiationPromptTemplate } = await browser.storage.local.get('negotiationPromptTemplate');
+    return negotiationPromptTemplate || DEFAULT_NEGOTIATION_PROMPT_TEMPLATE;
+}
+
+function renderNegotiationPrompt(template, url, title, reason) {
+    return template
+        .replaceAll('{{url}}', url || '')
+        .replaceAll('{{title}}', title || '')
+        .replaceAll('{{reason}}', reason || '');
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+async function negotiateUnblock(url, title, reason) {
+    if (!rateLimitAllows()) {
+        return { error: 'rate-limited' };
+    }
+    const template = await getNegotiationTemplate();
+    const prompt = renderNegotiationPrompt(template, url, title, reason);
+
+    try {
+        const result = await callProvider(prompt);
+        const minutes = clamp(parseInt(result.minutes, 10) || 1, 1, 10);
+        const hostname = getHostname(url);
+        const expiresAt = await setTemporaryUnblock(hostname, minutes, 'negotiation');
+        return {
+            minutes,
+            verdict: result.verdict || 'skeptical',
+            message: result.message || `Granted ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+            expiresAt
+        };
+    } catch (error) {
+        console.error('Negotiation failed:', error.message || error);
+        return { error: error.message || 'negotiation-failed' };
+    }
+}
+
+async function mathUnblock(url) {
+    const hostname = getHostname(url);
+    const minutes = 5;
+    const expiresAt = await setTemporaryUnblock(hostname, minutes, 'math');
+    return { minutes, expiresAt };
+}
+
+// Add a new message handler for popup and content-script requests
 browser.runtime.onMessage.addListener(async (message, sender) => {
     if (message.action === "analyzeCurrentTab") {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         const currentTab = tabs[0];
         const analysis = await analyzeURL(currentTab.url, currentTab.title);
-        return analysis; // This will be sent back to the popup
+        return analysis;
+    }
+    if (message.action === "negotiateUnblock") {
+        return negotiateUnblock(message.url, message.title, message.reason);
+    }
+    if (message.action === "mathUnblock") {
+        return mathUnblock(message.url);
     }
 });
