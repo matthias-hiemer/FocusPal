@@ -13,7 +13,7 @@
     "tabs"
   ],
   "background": {
-    "scripts": ["background.js"],
+    "scripts": ["shared/defaultPrompt.js", "background.js"],
     "persistent": false
   },
   "content_scripts": [
