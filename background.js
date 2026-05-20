@@ -2,6 +2,34 @@ console.log("background script loaded");
 
 const PRODUCTIVITY_THRESHOLD = 0.5;
 const DISTRACTION_THRESHOLD = 0.7;
+const ANALYSIS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getHostname(url) {
+    try {
+        return new URL(url).hostname;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function getCachedAnalysis(hostname) {
+    if (!hostname) return null;
+    const { analysisCache = {} } = await browser.storage.local.get('analysisCache');
+    const entry = analysisCache[hostname];
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) return null;
+    return entry.analysis;
+}
+
+async function setCachedAnalysis(hostname, analysis) {
+    if (!hostname || !analysis) return;
+    const { analysisCache = {} } = await browser.storage.local.get('analysisCache');
+    analysisCache[hostname] = {
+        analysis,
+        expiresAt: Date.now() + ANALYSIS_CACHE_TTL_MS
+    };
+    await browser.storage.local.set({ analysisCache });
+}
 
 async function getBlockedURLs() {
     try {
@@ -24,6 +52,13 @@ async function getApiKey() {
 }
 
 async function analyzeURL(url, title) {
+    const hostname = getHostname(url);
+    const cached = await getCachedAnalysis(hostname);
+    if (cached) {
+        console.log('Using cached analysis for', hostname);
+        return cached;
+    }
+
     const apiKey = await getApiKey();
     if (!apiKey) {
         console.error('No API key configured');
@@ -76,7 +111,9 @@ async function analyzeURL(url, title) {
         }
 
         const data = await response.json();
-        return JSON.parse(data.choices[0].message.content);
+        const analysis = JSON.parse(data.choices[0].message.content);
+        await setCachedAnalysis(hostname, analysis);
+        return analysis;
     } catch (error) {
         console.error('AI Analysis failed:', error);
         return null;
