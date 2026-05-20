@@ -5,7 +5,7 @@
 FocusPal is a Firefox extension that blocks distracting sites and helps users stay focused!
 
 
-<img width="640" alt="FocusPal Demo" src="https://github.com/ossd-s24/FocusPal/assets/62906996/e96c3c11-4cb0-4a90-b918-4258e29ea4b6">
+<img width="640" alt="FocusPal AI" src="https://github.com/ossd-s24/FocusPal/assets/62906996/e96c3c11-4cb0-4a90-b918-4258e29ea4b6">
 
 ## Features 
 

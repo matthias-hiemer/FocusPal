@@ -30,16 +30,26 @@ async function analyzeURL(url, title) {
         return null;
     }
 
-    const prompt = `Analyze this webpage for its potential to distract a software developer:
-URL: ${url}
-Title: ${title}
+    const prompt = `Analyze this webpage for productivity impact for a software developer:
+    URL: ${url}
+    Title: ${title}
 
-Rate on these factors (respond in JSON format only):
-{
-    "productivityScore": (0-1.0, how relevant is this to software development work. btw: chatGpt is a productivity tool, also googling things is a productivity tool),
-    "distractionScore": (0-1.0, how likely to cause distraction),
-    "reasoning": "brief explanation of the scoring"
-}`;
+    Respond in strict JSON format only:
+    {
+        "productivityScore": (0-1.0, higher for developer tools, documentation, learning resources, relevant to: Java, cloud, AI, education, real estate),
+        "distractionScore": (0-1.0, how likely to cause distraction). Hint: a blank new tab may happen because browser may not have loaded the page yet, so this is not a distraction,
+        "reasoning": "brief explanation of the scoring"
+    }
+
+    Reference scoring:
+    Developer tools (GitHub, Stack Overflow): productivity 0.9-1.0, distraction 0.0-0.1
+    Search engines (Google, Bing): productivity 0.6, distraction 0.5
+    Work communication (Email, Slack): productivity 0.8-0.9, distraction 0.1-0.2
+    Social/Entertainment (Reddit, YouTube, TikTok): productivity 0.0-0.1, distraction 0.9-1.0
+    Blank/loading pages: productivity 0.5, distraction 0.0
+    AI tools (ChatGPT, Claude, Gemini): productivity 0.8-1.0, distraction 0.0-0.15
+
+`;
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
