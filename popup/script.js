@@ -119,22 +119,55 @@ function setupCloseButton() {
     });
 }
 
-async function setupAPIKeyHandling() {
-    // Load existing API key
-    const result = await browser.storage.local.get('openaiApiKey');
-    if (result.openaiApiKey) {
-        document.getElementById('api-key').value = result.openaiApiKey;
-    }
+function maskApiKey(key) {
+    if (!key) return '';
+    const tail = key.slice(-4);
+    return `sk-••••••••••••${tail}`;
+}
 
-    // Handle save button
+async function renderApiKeyState() {
+    const result = await browser.storage.local.get('openaiApiKey');
+    const stored = document.getElementById('api-key-stored');
+    const entry = document.getElementById('api-key-entry');
+    const mask = document.querySelector('.api-key-mask');
+
+    if (result.openaiApiKey) {
+        mask.textContent = maskApiKey(result.openaiApiKey);
+        stored.style.display = 'flex';
+        entry.style.display = 'none';
+    } else {
+        stored.style.display = 'none';
+        entry.style.display = 'block';
+        document.getElementById('api-key').value = '';
+    }
+}
+
+async function setupAPIKeyHandling() {
+    await renderApiKeyState();
+
     document.getElementById('save-api-key').addEventListener('click', async () => {
-        const apiKey = document.getElementById('api-key').value.trim();
+        const input = document.getElementById('api-key');
+        const apiKey = input.value.trim();
         if (apiKey) {
             await browser.storage.local.set({ openaiApiKey: apiKey });
+            input.value = '';
             showNotification('API key saved successfully!');
+            await renderApiKeyState();
         } else {
             showNotification('Please enter a valid API key', 'error');
         }
+    });
+
+    document.getElementById('api-key-replace').addEventListener('click', async () => {
+        document.getElementById('api-key-stored').style.display = 'none';
+        document.getElementById('api-key-entry').style.display = 'block';
+        document.getElementById('api-key').focus();
+    });
+
+    document.getElementById('api-key-clear').addEventListener('click', async () => {
+        await browser.storage.local.remove('openaiApiKey');
+        showNotification('API key removed');
+        await renderApiKeyState();
     });
 }
 

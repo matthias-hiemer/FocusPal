@@ -417,6 +417,24 @@
     color: var(--gray-600);
 }
 
+.api-key-stored {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.api-key-mask {
+    flex: 1 1 auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    padding: 0.5rem 0.75rem;
+    background: var(--gray-100, #f3f4f6);
+    border-radius: 6px;
+    user-select: none;
+}
+
 .api-key-help a {
     color: var(--primary);
     text-decoration: none;
