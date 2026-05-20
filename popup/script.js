@@ -194,6 +194,29 @@ async function setupTimeRangeHandling() {
     });
 }
 
+async function setupPromptHandling() {
+    const textarea = document.getElementById('analysis-prompt');
+    const result = await browser.storage.local.get('analysisPromptTemplate');
+    textarea.value = result.analysisPromptTemplate || DEFAULT_ANALYSIS_PROMPT_TEMPLATE;
+
+    document.getElementById('save-prompt').addEventListener('click', async () => {
+        const value = textarea.value.trim();
+        if (!value) {
+            showNotification('Prompt cannot be empty', 'error');
+            return;
+        }
+        await browser.storage.local.set({ analysisPromptTemplate: value });
+        await browser.storage.local.remove('analysisCache');
+        showNotification('Prompt saved (analysis cache cleared)');
+    });
+
+    document.getElementById('reset-prompt').addEventListener('click', async () => {
+        textarea.value = DEFAULT_ANALYSIS_PROMPT_TEMPLATE;
+        await browser.storage.local.remove(['analysisPromptTemplate', 'analysisCache']);
+        showNotification('Prompt reset to default');
+    });
+}
+
 function setupBreakTimer() {
     const breakBtn = document.getElementById('take-break-btn');
     const breakTimer = document.getElementById('break-timer');
@@ -387,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupWhitelistButton();
     setupQuickActions();
     setupAPIKeyHandling();
+    setupPromptHandling();
     setupTimeRangeHandling();
     setupBreakTimer();
     updateWhitelistedSitesDisplay();

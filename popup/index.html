@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script defer src="../shared/defaultPrompt.js"></script>
     <script defer src="script.js"></script>
     <title>FocusPal</title>
 </head>
@@ -106,6 +107,25 @@
                     <div id="break-timer" class="break-timer" style="display: none">
                         <span class="timer-text">Break ends in: </span>
                         <span class="timer-count">15:00</span>
+                    </div>
+                </div>
+
+                <div class="prompt-section">
+                    <h3>Analysis Prompt</h3>
+                    <p class="prompt-description">
+                        Sent to the model for every analyzed page. Use
+                        <code>{{url}}</code> and <code>{{title}}</code> as
+                        placeholders. Adapt the focus context to your work.
+                    </p>
+                    <textarea
+                        id="analysis-prompt"
+                        class="settings-input prompt-textarea"
+                        rows="14"
+                        spellcheck="false"
+                    ></textarea>
+                    <div class="prompt-actions">
+                        <button id="save-prompt" class="primary-btn btn">Save Prompt</button>
+                        <button id="reset-prompt" class="secondary-btn btn">Reset to Default</button>
                     </div>
                 </div>
 
