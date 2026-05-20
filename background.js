@@ -3,6 +3,22 @@ console.log("background script loaded");
 const PRODUCTIVITY_THRESHOLD = 0.5;
 const DISTRACTION_THRESHOLD = 0.7;
 const ANALYSIS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const RATE_LIMIT_MAX_CALLS = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+
+const recentCallTimestamps = [];
+
+function rateLimitAllows() {
+    const now = Date.now();
+    while (recentCallTimestamps.length && now - recentCallTimestamps[0] > RATE_LIMIT_WINDOW_MS) {
+        recentCallTimestamps.shift();
+    }
+    if (recentCallTimestamps.length >= RATE_LIMIT_MAX_CALLS) {
+        return false;
+    }
+    recentCallTimestamps.push(now);
+    return true;
+}
 
 function getHostname(url) {
     try {
@@ -62,6 +78,11 @@ async function analyzeURL(url, title) {
     const apiKey = await getApiKey();
     if (!apiKey) {
         console.error('No API key configured');
+        return null;
+    }
+
+    if (!rateLimitAllows()) {
+        console.warn('FocusPal rate limit hit — skipping analysis for', url);
         return null;
     }
 
