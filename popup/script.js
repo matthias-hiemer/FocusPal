@@ -172,25 +172,32 @@ async function setupAPIKeyHandling() {
 }
 
 async function setupTimeRangeHandling() {
-    // Load saved times
-    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo']);
+    const result = await browser.storage.local.get([
+        'activeTimeFrom', 'activeTimeTo', 'disableOnWeekends'
+    ]);
     if (result.activeTimeFrom) {
         document.getElementById('time-from').value = result.activeTimeFrom;
     }
     if (result.activeTimeTo) {
         document.getElementById('time-to').value = result.activeTimeTo;
     }
+    // Default: weekends off
+    document.getElementById('disable-on-weekends').checked =
+        result.disableOnWeekends !== false;
 
-    // Save times when changed
     ['time-from', 'time-to'].forEach(id => {
         document.getElementById(id).addEventListener('change', async function() {
             const from = document.getElementById('time-from').value;
             const to = document.getElementById('time-to').value;
-            await browser.storage.local.set({ 
+            await browser.storage.local.set({
                 activeTimeFrom: from,
                 activeTimeTo: to
             });
         });
+    });
+
+    document.getElementById('disable-on-weekends').addEventListener('change', async function() {
+        await browser.storage.local.set({ disableOnWeekends: this.checked });
     });
 }
 

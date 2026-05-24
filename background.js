@@ -197,8 +197,10 @@ async function analyzeURL(url, title) {
 }
 
 async function isWithinActiveHours() {
-    const result = await browser.storage.local.get(['activeTimeFrom', 'activeTimeTo', 'breakUntil']);
-    
+    const result = await browser.storage.local.get([
+        'activeTimeFrom', 'activeTimeTo', 'breakUntil', 'disableOnWeekends'
+    ]);
+
     // Check if we're on a break
     if (result.breakUntil) {
         const breakEndTime = parseInt(result.breakUntil);
@@ -208,11 +210,20 @@ async function isWithinActiveHours() {
         }
     }
 
+    const now = new Date();
+
+    // Weekend off (default on)
+    const disableOnWeekends = result.disableOnWeekends !== false;
+    const day = now.getDay(); // 0 = Sun, 6 = Sat
+    if (disableOnWeekends && (day === 0 || day === 6)) {
+        console.log('Weekend — focus mode off');
+        return false;
+    }
+
     // Default times if not set
     const from = result.activeTimeFrom || '06:00';
     const to = result.activeTimeTo || '17:00';
-    
-    const now = new Date();
+
     const currentTime = now.getHours() * 60 + now.getMinutes();
     
     const [fromHours, fromMinutes] = from.split(':').map(Number);
