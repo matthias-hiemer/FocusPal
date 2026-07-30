@@ -4,7 +4,8 @@
   "version": "1.0",
   "description": "Block distracting sites and stay focused",
   "icons": {
-    "48": "icons/border-48.png"
+    "48": "assets/focuspal.svg",
+    "96": "assets/focuspal.svg"
   },
   "permissions": [
     "storage",
@@ -24,7 +25,7 @@
     }
   ],
   "browser_action": {
-    "default_icon": "assets/github.svg",
+    "default_icon": "assets/focuspal.svg",
     "default_title": "FocusPal",
     "default_popup": "popup/index.html"
   }
