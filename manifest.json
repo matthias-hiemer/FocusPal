@@ -1,8 +1,14 @@
 {
   "manifest_version": 2,
   "name": "FocusPal",
-  "version": "1.0",
+  "version": "1.1.0",
   "description": "Block distracting sites and stay focused",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focuspal@matthias-hiemer.de",
+      "strict_min_version": "109.0"
+    }
+  },
   "icons": {
     "48": "assets/focuspal.svg",
     "96": "assets/focuspal.svg"
