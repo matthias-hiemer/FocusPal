@@ -1,0 +1,14 @@
+{
+  "name": "focuspal",
+  "private": true,
+  "description": "Firefox extension that blocks distracting sites and helps you stay focused",
+  "scripts": {
+    "lint": "web-ext lint",
+    "build": "web-ext build",
+    "sign": "web-ext sign",
+    "start": "web-ext run"
+  },
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  }
+}
