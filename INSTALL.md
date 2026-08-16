@@ -18,14 +18,26 @@ that are never published in the public add-on directory.
    (requires a free Mozilla account). You get a **JWT issuer** (key) and a
    **JWT secret**.
 
-3. Keep them out of the repo — export them in your shell instead:
+3. Put them in `~/.web-ext-config.mjs`:
 
-   ```bash
-   export WEB_EXT_API_KEY="user:12345678:123"
-   export WEB_EXT_API_SECRET="your-secret-here"
+   ```js
+   export default {
+       sign: {
+           apiKey: 'user:12345678:123',
+           apiSecret: 'your-secret-here'
+       }
+   };
    ```
 
-   Put those two lines in `~/.zshrc` if you want them to persist.
+   web-ext discovers this file automatically — no flags, no shell exports.
+   It lives in your home directory rather than the repo, so the secret cannot
+   be committed by accident. Restrict it with `chmod 600 ~/.web-ext-config.mjs`.
+
+   The two config files merge per option, so the `channel: 'unlisted'` set in
+   the project's `web-ext-config.mjs` still applies alongside these credentials.
+
+   If you prefer environment variables, `WEB_EXT_API_KEY` and
+   `WEB_EXT_API_SECRET` work as well and take precedence.
 
 ## Build a signed XPI
 
