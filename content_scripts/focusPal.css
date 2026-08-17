@@ -276,6 +276,10 @@
     color: #22543d;
 }
 
+.math-feedback.err {
+    color: #c53030;
+}
+
 /* Active-unblock overlay */
 .focuspal-overlay {
     position: fixed;

@@ -94,30 +94,32 @@ function renderNegotiationView() {
         </div>`;
 }
 
+// The input is deliberately type="text" with inputmode="numeric": type="number"
+// renders stepper arrows, and holding one turns the problem into a one-keypress-
+// per-guess brute force. The answer is only checked on an explicit submit, and a
+// wrong answer draws a new problem — so guessing never converges on anything.
 function renderMathView() {
-    const a = 10 + Math.floor(Math.random() * 90);
-    const b = 10 + Math.floor(Math.random() * 90);
-    const correct = a + b;
-
-    return {
-        html: `
+    return `
         <div class="focuspal-blocked" id="focuspal-root">
             <div class="blocked-content">
                 <h1 class="math-title">Are you sure?</h1>
                 <p class="math-help">
                     Solve this, then wait 10 seconds. You'll get 5 minutes on this site.
                 </p>
-                <div class="math-problem">${a} + ${b} = <input id="fp-math-input"
-                    type="number" inputmode="numeric" autocomplete="off" /></div>
+                <div class="math-problem">
+                    <span id="fp-math-question"></span>
+                    <input id="fp-math-input" type="text" inputmode="numeric"
+                        autocomplete="off" maxlength="4" />
+                </div>
                 <div class="action-buttons">
                     <button id="fp-cancel" class="secondary-btn">Cancel</button>
-                    <button id="fp-math-confirm" class="warning-btn" disabled>Wait…</button>
+                    <button id="fp-math-check" class="primary-btn">Check</button>
+                    <button id="fp-math-confirm" class="warning-btn"
+                        style="display:none;" disabled>Wait…</button>
                 </div>
                 <p id="fp-math-feedback" class="math-feedback"></p>
             </div>
-        </div>`,
-        correct
-    };
+        </div>`;
 }
 
 function restorePage() {
@@ -234,44 +236,74 @@ function renderNegotiationResult(result) {
 }
 
 function showMathView(analysis) {
-    const { html, correct } = renderMathView();
-    document.body.innerHTML = html;
+    document.body.innerHTML = renderMathView();
     document.getElementById('fp-cancel').addEventListener('click', () => showInitial(analysis));
 
+    const question = document.getElementById('fp-math-question');
     const input = document.getElementById('fp-math-input');
-    const confirm = document.getElementById('fp-math-confirm');
+    const checkBtn = document.getElementById('fp-math-check');
+    const confirmBtn = document.getElementById('fp-math-confirm');
     const feedback = document.getElementById('fp-math-feedback');
+    let correct = 0;
     let cooldownTimerId = null;
-    let solved = false;
+
+    function newProblem() {
+        const a = 10 + Math.floor(Math.random() * 90);
+        const b = 10 + Math.floor(Math.random() * 90);
+        correct = a + b;
+        question.textContent = `${a} + ${b} =`;
+        input.value = '';
+        input.focus();
+    }
 
     function startCooldown() {
-        solved = true;
+        input.disabled = true;
+        checkBtn.style.display = 'none';
+        confirmBtn.style.display = 'inline-flex';
         feedback.textContent = 'Correct. Cooldown…';
         feedback.className = 'math-feedback ok';
         let remaining = 10;
-        confirm.textContent = `Wait ${remaining}…`;
+        confirmBtn.textContent = `Wait ${remaining}…`;
         cooldownTimerId = setInterval(() => {
             remaining -= 1;
             if (remaining > 0) {
-                confirm.textContent = `Wait ${remaining}…`;
+                confirmBtn.textContent = `Wait ${remaining}…`;
             } else {
                 clearInterval(cooldownTimerId);
-                confirm.disabled = false;
-                confirm.textContent = 'Confirm unlock (5 min)';
+                cooldownTimerId = null;
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm unlock (5 min)';
             }
         }, 1000);
     }
 
-    input.addEventListener('input', () => {
-        if (solved) return;
-        const val = parseInt(input.value, 10);
+    function submitAnswer() {
+        const val = parseInt(input.value.trim(), 10);
+        if (Number.isNaN(val)) {
+            feedback.textContent = 'Enter a number.';
+            feedback.className = 'math-feedback';
+            input.focus();
+            return;
+        }
         if (val === correct) {
             startCooldown();
+        } else {
+            feedback.textContent = 'Not quite — here is a new one.';
+            feedback.className = 'math-feedback err';
+            newProblem();
+        }
+    }
+
+    checkBtn.addEventListener('click', submitAnswer);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            submitAnswer();
         }
     });
 
-    confirm.addEventListener('click', async () => {
-        if (confirm.disabled) return;
+    confirmBtn.addEventListener('click', async () => {
+        if (confirmBtn.disabled) return;
         const result = await browser.runtime.sendMessage({
             action: 'mathUnblock',
             url: window.location.href
@@ -279,6 +311,8 @@ function showMathView(analysis) {
         restorePage();
         installTimerOverlay(result.expiresAt);
     });
+
+    newProblem();
 }
 
 function getHostname(url) {
