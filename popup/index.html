@@ -31,6 +31,9 @@
             <button class="tab-btn" data-target="white-list">
                 Allow List
             </button>
+            <button class="tab-btn" data-target="activity">
+                Activity
+            </button>
             <button class="tab-btn tab-btn-active" data-target="settings">
                 Settings
             </button>
@@ -76,6 +79,22 @@
                 <ul class="allowed-sites-ul"></ul>
             </section>
         </div>
+        <div id="activity" class="tab-content" style="display: none;">
+            <section class="activity-section">
+                <div class="activity-header">
+                    <p class="activity-heading">Recent Decisions</p>
+                    <button id="clear-activity" class="secondary-btn btn">Clear</button>
+                </div>
+                <div class="activity-filters">
+                    <button class="filter-btn filter-btn-active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="blocked">Blocked</button>
+                    <button class="filter-btn" data-filter="allowed">Allowed</button>
+                    <button class="filter-btn" data-filter="issues">Issues</button>
+                </div>
+                <ul class="activity-ul"></ul>
+                <p class="activity-empty"></p>
+            </section>
+        </div>
         <div id="settings" class="tab-content" style="display: block;">
             <section class="settings-section">
                 <h2 class="settings-title">AI Protection Settings</h2>
@@ -95,6 +114,10 @@
                     <label class="checkbox-row">
                         <input type="checkbox" id="disable-on-weekends" checked />
                         <span>Disable on weekends</span>
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="activity-log-enabled" checked />
+                        <span>Record activity log</span>
                     </label>
                 </div>
 

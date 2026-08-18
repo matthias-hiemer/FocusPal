@@ -173,7 +173,7 @@ async function setupAPIKeyHandling() {
 
 async function setupTimeRangeHandling() {
     const result = await browser.storage.local.get([
-        'activeTimeFrom', 'activeTimeTo', 'disableOnWeekends'
+        'activeTimeFrom', 'activeTimeTo', 'disableOnWeekends', 'activityLogEnabled'
     ]);
     if (result.activeTimeFrom) {
         document.getElementById('time-from').value = result.activeTimeFrom;
@@ -184,6 +184,8 @@ async function setupTimeRangeHandling() {
     // Default: weekends off
     document.getElementById('disable-on-weekends').checked =
         result.disableOnWeekends !== false;
+    document.getElementById('activity-log-enabled').checked =
+        result.activityLogEnabled !== false;
 
     ['time-from', 'time-to'].forEach(id => {
         document.getElementById(id).addEventListener('change', async function() {
@@ -199,6 +201,156 @@ async function setupTimeRangeHandling() {
     document.getElementById('disable-on-weekends').addEventListener('change', async function() {
         await browser.storage.local.set({ disableOnWeekends: this.checked });
     });
+
+    document.getElementById('activity-log-enabled').addEventListener('change', async function() {
+        await browser.storage.local.set({ activityLogEnabled: this.checked });
+        showNotification(this.checked ? 'Activity log on' : 'Activity log off');
+    });
+}
+
+const DECISION_META = {
+    'blocked-list': { label: 'Blocked · list', cls: 'dec-blocked', group: 'blocked' },
+    'ai-blocked':   { label: 'Blocked · AI',   cls: 'dec-blocked', group: 'blocked' },
+    'ai-allowed':   { label: 'Allowed',        cls: 'dec-allowed', group: 'allowed' },
+    'negotiated':   { label: 'Negotiated',     cls: 'dec-granted', group: 'allowed' },
+    'math-unblock': { label: 'Unlocked',       cls: 'dec-granted', group: 'allowed' },
+    'rate-limited': { label: 'Rate limited',   cls: 'dec-issue',   group: 'issues'  },
+    'error':        { label: 'Error',          cls: 'dec-issue',   group: 'issues'  }
+};
+
+function relativeTime(ts) {
+    const minutes = Math.floor((Date.now() - ts) / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+// Entries carry page titles and raw model output, both of which are attacker
+// controlled — any site can set its own <title>. Everything here is written with
+// textContent and never innerHTML.
+function buildActivityEntry(entry) {
+    const meta = DECISION_META[entry.decision]
+        || { label: entry.decision, cls: 'dec-issue', group: 'issues' };
+
+    const li = document.createElement('li');
+    li.className = 'activity-li';
+
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+
+    const badge = document.createElement('span');
+    badge.className = `activity-badge ${meta.cls}`;
+    badge.textContent = meta.label;
+    row.appendChild(badge);
+
+    const host = document.createElement('span');
+    host.className = 'activity-host';
+    host.textContent = entry.host || '—';
+    row.appendChild(host);
+
+    const time = document.createElement('span');
+    time.className = 'activity-time';
+    time.textContent = relativeTime(entry.ts);
+    row.appendChild(time);
+
+    li.appendChild(row);
+
+    if (entry.title) {
+        const title = document.createElement('p');
+        title.className = 'activity-title';
+        title.textContent = entry.title;
+        li.appendChild(title);
+    }
+
+    const bits = [];
+    if (entry.scores) {
+        bits.push(`distraction ${Math.round(entry.scores.distraction * 100)}%`);
+        bits.push(`productivity ${Math.round(entry.scores.productivity * 100)}%`);
+    }
+    if (entry.negotiation?.minutes) bits.push(`${entry.negotiation.minutes} min`);
+    if (entry.negotiation?.verdict) bits.push(entry.negotiation.verdict);
+    if (entry.source) bits.push(entry.source === 'cache' ? 'from cache' : 'provider call');
+    if (entry.provider) bits.push(entry.provider);
+
+    if (bits.length) {
+        const metaLine = document.createElement('p');
+        metaLine.className = 'activity-meta';
+        metaLine.textContent = bits.join(' · ');
+        li.appendChild(metaLine);
+    }
+
+    const details = [];
+    if (entry.reasoning) details.push(entry.reasoning);
+    if (entry.error) details.push(entry.error);
+    if (entry.negotiation?.reason) details.push(`You: ${entry.negotiation.reason}`);
+    if (entry.negotiation?.message) details.push(`FocusPal: ${entry.negotiation.message}`);
+
+    if (details.length) {
+        const detail = document.createElement('div');
+        detail.className = 'activity-detail';
+        details.forEach(text => {
+            const p = document.createElement('p');
+            p.textContent = text;
+            detail.appendChild(p);
+        });
+        li.appendChild(detail);
+        li.classList.add('has-detail');
+        li.addEventListener('click', () => li.classList.toggle('expanded'));
+    }
+
+    return li;
+}
+
+async function setupActivityHandling() {
+    let currentFilter = 'all';
+
+    async function render() {
+        const { activityLog = [] } = await browser.storage.local.get('activityLog');
+        const list = document.querySelector('.activity-ul');
+        const empty = document.querySelector('.activity-empty');
+        list.textContent = '';
+
+        const filtered = activityLog.filter(entry => {
+            if (currentFilter === 'all') return true;
+            return DECISION_META[entry.decision]?.group === currentFilter;
+        });
+
+        if (!filtered.length) {
+            empty.style.display = 'block';
+            empty.textContent = activityLog.length
+                ? 'Nothing matches this filter.'
+                : 'Nothing logged yet. Browse a little and come back.';
+            return;
+        }
+
+        empty.style.display = 'none';
+        filtered.forEach(entry => list.appendChild(buildActivityEntry(entry)));
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn')
+                .forEach(b => b.classList.remove('filter-btn-active'));
+            btn.classList.add('filter-btn-active');
+            currentFilter = btn.dataset.filter;
+            render();
+        });
+    });
+
+    document.getElementById('clear-activity').addEventListener('click', async () => {
+        await browser.storage.local.remove('activityLog');
+        showNotification('Activity log cleared');
+        render();
+    });
+
+    // Keep the list current while the popup stays open.
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.activityLog) render();
+    });
+
+    render();
 }
 
 async function setupProviderHandling() {
@@ -458,6 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAddToBlockListButton();
     setupWhitelistButton();
     setupQuickActions();
+    setupActivityHandling();
     setupProviderHandling();
     setupAPIKeyHandling();
     setupPromptHandling();

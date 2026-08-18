@@ -21,6 +21,14 @@ FocusPal is a Firefox extension that blocks distracting sites and helps users st
 - The analysis prompt is editable in Settings, so the scoring matches your work
 - Results are cached per domain for 7 days and rate limited to 10 calls/minute
 
+**Activity log**
+- An Activity tab records every decision: which site, what the model scored it,
+  whether the verdict came from the cache or a real provider call, and what you
+  negotiated
+- Filter by blocked / allowed / issues, expand an entry for the model's reasoning
+- Keeps the last 100 entries, stores only hostnames, and can be turned off in
+  Settings
+
 **Friction instead of a bypass button**
 - *Negotiate access* — say what you need the site for, and the AI grants
   1–10 minutes depending on how specific your reason is
@@ -42,6 +50,22 @@ To try it out temporarily:
 5. Choose the manifest.json file
 
 Firefox removes temporary add-ons when it restarts.
+
+## Development
+
+```bash
+npm run preview
+```
+
+Generates `popup/_preview.html` from the real `popup/index.html` and serves the
+project, so the popup can be checked at
+<http://localhost:8731/popup/_preview.html> without reloading the extension in
+Firefox. `popup/_preview-stub.js` supplies fake `browser.*` APIs and sample
+activity entries covering every decision type.
+
+`_preview.html` is generated on every run — edit `popup/index.html` instead.
+Both preview files are excluded from the packaged XPI. This covers the popup
+only; the block page and background script still need a real Firefox session.
 
 ## Setup
 
