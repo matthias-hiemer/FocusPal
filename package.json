@@ -4,6 +4,7 @@
   "description": "Firefox extension that blocks distracting sites and helps you stay focused",
   "scripts": {
     "lint": "web-ext lint",
+    "preview": "node tools/build-preview.mjs && python3 -m http.server 8731",
     "build": "web-ext build",
     "sign": "web-ext sign",
     "start": "web-ext run"

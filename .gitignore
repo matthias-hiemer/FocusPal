@@ -4,3 +4,6 @@ web-ext-artifacts/
 
 # web-ext resume state for an interrupted AMO upload
 .amo-upload-uuid
+
+# Generated from popup/index.html by `npm run preview` — never edit by hand
+popup/_preview.html

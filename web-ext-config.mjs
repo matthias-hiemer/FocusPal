@@ -11,7 +11,13 @@ export default {
         'package-lock.json',
         'web-ext-config.mjs',
         '*.md',
-        '.github'
+        '.github',
+        // Preview harness. _preview-stub.js replaces window.browser with a fake
+        // storage backend, so shipping it would be actively harmful — the
+        // exclusion matters more than the tidiness.
+        'popup/_preview.html',
+        'popup/_preview-stub.js',
+        'tools'
     ],
     build: {
         overwriteDest: true
