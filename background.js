@@ -183,6 +183,11 @@ async function callOllama(prompt) {
             messages: [{ role: 'user', content: prompt }],
             format: 'json',
             stream: false,
+            // Reasoning models (gemma4, deepseek-r1, qwen3) otherwise emit a long
+            // chain of thought before the JSON, which took over two minutes for a
+            // verdict that takes seconds without it. Harmless for models that
+            // have no thinking capability — they simply ignore it.
+            think: false,
             options: { temperature: 0.2 }
         })
     });
