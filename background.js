@@ -5,8 +5,45 @@ const DISTRACTION_THRESHOLD = 0.7;
 const ANALYSIS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const RATE_LIMIT_MAX_CALLS = 10;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const ACTIVITY_LOG_MAX_ENTRIES = 100;
+const ACTIVITY_TITLE_MAX = 80;
+const ACTIVITY_REASONING_MAX = 240;
 
 const recentCallTimestamps = [];
+
+// Appending is a read-modify-write on one array, and several tabs can finish
+// loading at the same moment. Chaining the writes keeps concurrent appends from
+// reading the same snapshot and dropping each other's entries.
+let activityWriteQueue = Promise.resolve();
+
+function truncate(value, max) {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
+}
+
+async function isActivityLogEnabled() {
+    const { activityLogEnabled } = await browser.storage.local.get('activityLogEnabled');
+    return activityLogEnabled !== false;
+}
+
+function logActivity(entry) {
+    activityWriteQueue = activityWriteQueue.then(async () => {
+        try {
+            if (!await isActivityLogEnabled()) return;
+            const { activityLog = [] } = await browser.storage.local.get('activityLog');
+            activityLog.unshift({ ts: Date.now(), ...entry });
+            await browser.storage.local.set({
+                activityLog: activityLog.slice(0, ACTIVITY_LOG_MAX_ENTRIES)
+            });
+        } catch (error) {
+            // Logging must never break the blocking path.
+            console.error('Failed to write activity entry:', error);
+        }
+    });
+    return activityWriteQueue;
+}
 
 function rateLimitAllows() {
     const now = Date.now();
@@ -170,17 +207,20 @@ async function callProvider(prompt) {
     throw new Error(`Unknown provider: ${provider}`);
 }
 
+// Returns { analysis, source, error }. Callers need the source to tell a cache
+// hit from a real provider call — without it there is no way to see from the
+// outside whether a request was actually made.
 async function analyzeURL(url, title) {
     const hostname = getHostname(url);
     const cached = await getCachedAnalysis(hostname);
     if (cached) {
         console.log('Using cached analysis for', hostname);
-        return cached;
+        return { analysis: cached, source: 'cache', error: null };
     }
 
     if (!rateLimitAllows()) {
         console.warn('FocusPal rate limit hit — skipping analysis for', url);
-        return null;
+        return { analysis: null, source: null, error: 'rate-limited' };
     }
 
     const template = await getPromptTemplate();
@@ -189,10 +229,11 @@ async function analyzeURL(url, title) {
     try {
         const analysis = await callProvider(prompt);
         await setCachedAnalysis(hostname, analysis);
-        return analysis;
+        return { analysis, source: 'api', error: null };
     } catch (error) {
-        console.error('AI Analysis failed:', error.message || error);
-        return null;
+        const message = error.message || String(error);
+        console.error('AI Analysis failed:', message);
+        return { analysis: null, source: 'api', error: message };
     }
 }
 
@@ -268,24 +309,56 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
         // Check if URL is in blocklist first
         const isBlocked = blockedURLs.some(blocked => tab.url.includes(blocked.url));
         
+        const title = truncate(tab.title, ACTIVITY_TITLE_MAX);
+
         if (isBlocked) {
             // If URL is blocked, send message immediately
-            browser.tabs.sendMessage(tabId, { 
-                action: "checkPage", 
+            browser.tabs.sendMessage(tabId, {
+                action: "checkPage",
                 blockedURLs: blockedURLs,
                 analysis: null
             });
+            logActivity({ host: hostname, title, decision: 'blocked-list' });
         } else {
             // If not blocked, perform AI analysis
-            const analysis = await analyzeURL(tab.url, tab.title);
+            const { analysis, source, error } = await analyzeURL(tab.url, tab.title);
+            const provider = await getProvider();
+
+            if (error) {
+                logActivity({
+                    host: hostname,
+                    title,
+                    decision: error === 'rate-limited' ? 'rate-limited' : 'error',
+                    source,
+                    provider,
+                    error: error === 'rate-limited' ? null : truncate(error, ACTIVITY_REASONING_MAX)
+                });
+                return;
+            }
+
             const isDistracting = analysis && analysis.distractionScore > DISTRACTION_THRESHOLD;
             const isProductive = analysis && analysis.productivityScore > PRODUCTIVITY_THRESHOLD;
             // if is not productive and is distracting
             if (!isProductive && isDistracting) {
-                browser.tabs.sendMessage(tabId, { 
-                    action: "checkPage", 
+                browser.tabs.sendMessage(tabId, {
+                    action: "checkPage",
                     blockedURLs: blockedURLs,
                     analysis: analysis
+                });
+            }
+
+            if (analysis) {
+                logActivity({
+                    host: hostname,
+                    title,
+                    decision: (!isProductive && isDistracting) ? 'ai-blocked' : 'ai-allowed',
+                    source,
+                    provider,
+                    scores: {
+                        distraction: analysis.distractionScore,
+                        productivity: analysis.productivityScore
+                    },
+                    reasoning: truncate(analysis.reasoning, ACTIVITY_REASONING_MAX)
                 });
             }
         }
@@ -318,20 +391,45 @@ async function negotiateUnblock(url, title, reason) {
     const template = await getNegotiationTemplate();
     const prompt = renderNegotiationPrompt(template, url, title, reason);
 
+    const hostname = getHostname(url);
+    const shortTitle = truncate(title, ACTIVITY_TITLE_MAX);
+
     try {
         const result = await callProvider(prompt);
         const minutes = clamp(parseInt(result.minutes, 10) || 1, 1, 10);
-        const hostname = getHostname(url);
+        const verdict = result.verdict || 'skeptical';
+        const grantMessage = result.message
+            || `Granted ${minutes} minute${minutes === 1 ? '' : 's'}.`;
         const expiresAt = await setTemporaryUnblock(hostname, minutes, 'negotiation');
-        return {
-            minutes,
-            verdict: result.verdict || 'skeptical',
-            message: result.message || `Granted ${minutes} minute${minutes === 1 ? '' : 's'}.`,
-            expiresAt
-        };
+
+        logActivity({
+            host: hostname,
+            title: shortTitle,
+            decision: 'negotiated',
+            source: 'api',
+            provider: await getProvider(),
+            negotiation: {
+                reason: truncate(reason, ACTIVITY_REASONING_MAX),
+                minutes,
+                verdict,
+                message: truncate(grantMessage, ACTIVITY_REASONING_MAX)
+            }
+        });
+
+        return { minutes, verdict, message: grantMessage, expiresAt };
     } catch (error) {
-        console.error('Negotiation failed:', error.message || error);
-        return { error: error.message || 'negotiation-failed' };
+        const message = error.message || 'negotiation-failed';
+        console.error('Negotiation failed:', message);
+        logActivity({
+            host: hostname,
+            title: shortTitle,
+            decision: 'error',
+            source: 'api',
+            provider: await getProvider(),
+            error: truncate(message, ACTIVITY_REASONING_MAX),
+            negotiation: { reason: truncate(reason, ACTIVITY_REASONING_MAX) }
+        });
+        return { error: message };
     }
 }
 
@@ -339,6 +437,7 @@ async function mathUnblock(url) {
     const hostname = getHostname(url);
     const minutes = 5;
     const expiresAt = await setTemporaryUnblock(hostname, minutes, 'math');
+    logActivity({ host: hostname, decision: 'math-unblock', negotiation: { minutes } });
     return { minutes, expiresAt };
 }
 
@@ -347,7 +446,8 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     if (message.action === "analyzeCurrentTab") {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         const currentTab = tabs[0];
-        const analysis = await analyzeURL(currentTab.url, currentTab.title);
+        // Unwrapped: this handler's callers expect the bare analysis object.
+        const { analysis } = await analyzeURL(currentTab.url, currentTab.title);
         return analysis;
     }
     if (message.action === "negotiateUnblock") {
