@@ -319,20 +319,23 @@ function getHostname(url) {
     try { return new URL(url).hostname; } catch (e) { return null; }
 }
 
-async function showOverlayIfAlreadyUnblocked() {
+async function getActiveUnblock() {
     const host = getHostname(window.location.href);
-    if (!host) return false;
+    if (!host) return null;
     const { temporaryUnblocks = {} } = await browser.storage.local.get('temporaryUnblocks');
     const entry = temporaryUnblocks[host];
-    if (entry && Date.now() < entry.expiresAt) {
-        installTimerOverlay(entry.expiresAt);
-        return true;
-    }
-    return false;
+    if (!entry || Date.now() >= entry.expiresAt) return null;
+    return entry;
 }
 
-browser.runtime.onMessage.addListener((message) => {
-    if (message.action !== "checkPage") return;
+async function showOverlayIfAlreadyUnblocked() {
+    const entry = await getActiveUnblock();
+    if (!entry) return false;
+    installTimerOverlay(entry.expiresAt);
+    return true;
+}
+
+async function handleCheckPage(message) {
     const currentURL = window.location.href;
     const blockedURLs = message.blockedURLs || [];
     const analysis = message.analysis;
@@ -340,11 +343,23 @@ browser.runtime.onMessage.addListener((message) => {
     const isBlocked = blockedURLs.some(blocked => currentURL.includes(blocked.url));
     const isDistracting = analysis && analysis.distractionScore > 0.7;
 
-    if (isBlocked || isDistracting) {
-        blockHost = getHostname(currentURL);
-        originalContent = document.body.innerHTML;
-        showInitial(analysis);
-    }
+    if (!isBlocked && !isDistracting) return;
+
+    // The background re-checks before sending, but a message can already be in
+    // flight when the grant is written. Without this the block page would replace
+    // the page the user just earned access to.
+    if (await getActiveUnblock()) return;
+
+    blockHost = getHostname(currentURL);
+    originalContent = document.body.innerHTML;
+    showInitial(analysis);
+}
+
+browser.runtime.onMessage.addListener((message) => {
+    if (message.action !== "checkPage") return;
+    // Intentionally not returning the promise: doing so would tell the sender a
+    // response is coming, and nothing awaits one here.
+    handleCheckPage(message);
 });
 
 // On every page load, if there's an active unblock for this host, show the

@@ -283,6 +283,21 @@ async function isWithinActiveHours() {
     return isActive;
 }
 
+// Sends the block instruction, but only if the site is still blocked *now*.
+// Several seconds can pass between deciding to block and getting here, because
+// the AI analysis is awaited in between, and the user may have been granted a
+// temporary unblock during that window. Re-reading storage at the moment of
+// sending is what keeps a stale decision from overriding a fresh grant.
+// Returns whether the block was actually sent.
+async function sendBlockMessage(tabId, hostname, payload) {
+    if (await getTemporaryUnblock(hostname)) {
+        console.log('Unblock granted while analyzing — not blocking', hostname);
+        return false;
+    }
+    browser.tabs.sendMessage(tabId, { action: "checkPage", ...payload });
+    return true;
+}
+
 async function handleTabUpdate(tabId, changeInfo, tab) {
     if (changeInfo.status === "complete") {
         // Check if we're within active hours
@@ -318,12 +333,13 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
 
         if (isBlocked) {
             // If URL is blocked, send message immediately
-            browser.tabs.sendMessage(tabId, {
-                action: "checkPage",
+            const sent = await sendBlockMessage(tabId, hostname, {
                 blockedURLs: blockedURLs,
                 analysis: null
             });
-            logActivity({ host: hostname, title, decision: 'blocked-list' });
+            if (sent) {
+                logActivity({ host: hostname, title, decision: 'blocked-list' });
+            }
         } else {
             // If not blocked, perform AI analysis
             const { analysis, source, error } = await analyzeURL(tab.url, tab.title);
@@ -344,19 +360,24 @@ async function handleTabUpdate(tabId, changeInfo, tab) {
             const isDistracting = analysis && analysis.distractionScore > DISTRACTION_THRESHOLD;
             const isProductive = analysis && analysis.productivityScore > PRODUCTIVITY_THRESHOLD;
             // if is not productive and is distracting
-            if (!isProductive && isDistracting) {
-                browser.tabs.sendMessage(tabId, {
-                    action: "checkPage",
+            const wouldBlock = !isProductive && isDistracting;
+
+            if (wouldBlock) {
+                const sent = await sendBlockMessage(tabId, hostname, {
                     blockedURLs: blockedURLs,
                     analysis: analysis
                 });
+                // Suppressed by a grant that landed mid-analysis. Nothing is logged:
+                // this is a page load inside an active grace period, which is not
+                // recorded either.
+                if (!sent) return;
             }
 
             if (analysis) {
                 logActivity({
                     host: hostname,
                     title,
-                    decision: (!isProductive && isDistracting) ? 'ai-blocked' : 'ai-allowed',
+                    decision: wouldBlock ? 'ai-blocked' : 'ai-allowed',
                     source,
                     provider,
                     scores: {
